@@ -369,14 +369,20 @@ function handleOpenMarkdownFile(e) {
       currentTranslatedText = content;
       currentSourceFilename = file.name;
       targetEditor.value = content;
+      
+      // Ensure we switch to rendered view mode and render
+      setTargetViewMode('rendered');
       renderTargetMarkdown(content, true);
+      
       updateTargetStats(content.length, `Đã mở file: ${file.name}`);
       showToast(`Đã mở tài liệu: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+      
       // Auto collapse source input to maximize preview
       if (isInputSectionVisible) toggleInputSection();
     }
   };
   reader.readAsText(file);
+  e.target.value = ''; // Reset input
 }
 
 // -------------------------------------------------------------
@@ -767,34 +773,98 @@ function renderTargetMarkdown(content, isFinal = false) {
     } catch (_) {}
   }
 
-  // Parse Markdown with Marked.js and sanitize
+  // Markdown + KaTeX Rendering
   if (window.marked && window.DOMPurify) {
-    const rawHtml = window.marked.parse(content);
-    const cleanHtml = window.DOMPurify.sanitize(rawHtml, {
-      ADD_TAGS: ['iframe'],
-      ADD_ATTR: ['target', 'allowfullscreen', 'frameborder'],
+    const mathEntries = [];
+    const codeEntries = [];
+    let codeCounter = 0;
+
+    let processed = content;
+
+    // 1. Bảo vệ Code Blocks trước tiên
+    processed = processed.replace(/(```[\s\S]*?```|````[\s\S]*?````|`[^`\n]+?`)/g, (match) => {
+      const id = `CODEBLOCKPH${codeCounter++}XYZ`;
+      codeEntries.push({ id, code: match });
+      return id;
     });
+
+    // 2. Trích xuất LaTeX Environments: \begin{...} ... \end{...}
+    processed = processed.replace(/\\begin\{(equation\*?|align\*?|gather\*?|matrix|pmatrix|bmatrix|vmatrix|cases)\}([\s\S]+?)\\end\{\1\}/g, (match) => {
+      const idx = mathEntries.length;
+      mathEntries.push({ formula: match.trim(), display: true });
+      return `\n\n<div class="katex-block-target" data-math-idx="${idx}"></div>\n\n`;
+    });
+
+    // 3. Trích xuất Display Math: $$ ... $$ và \[ ... \]
+    processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (match, formula) => {
+      const idx = mathEntries.length;
+      mathEntries.push({ formula: formula.trim(), display: true });
+      return `\n\n<div class="katex-block-target" data-math-idx="${idx}"></div>\n\n`;
+    });
+
+    processed = processed.replace(/\\\[([\s\S]+?)\\\]/g, (match, formula) => {
+      const idx = mathEntries.length;
+      mathEntries.push({ formula: formula.trim(), display: true });
+      return `\n\n<div class="katex-block-target" data-math-idx="${idx}"></div>\n\n`;
+    });
+
+    // 4. Trích xuất Inline Math: \( ... \) và $ ... $
+    processed = processed.replace(/\\\(([\s\S]+?)\\\)/g, (match, formula) => {
+      const idx = mathEntries.length;
+      mathEntries.push({ formula: formula.trim(), display: false });
+      return `<span class="katex-inline-target" data-math-idx="${idx}"></span>`;
+    });
+
+    processed = processed.replace(/(?<!\\)\$([^\$\n\r]+?)(?<!\\)\$/g, (match, formula) => {
+      const idx = mathEntries.length;
+      mathEntries.push({ formula: formula.trim(), display: false });
+      return `<span class="katex-inline-target" data-math-idx="${idx}"></span>`;
+    });
+
+    // 5. Khôi phục Code Blocks trước khi Marked parse
+    codeEntries.forEach((entry) => {
+      processed = processed.split(entry.id).join(entry.code);
+    });
+
+    // 6. Parse Markdown bằng Marked
+    marked.setOptions({
+      gfm: true,
+      breaks: true,
+    });
+    const rawHtml = window.marked.parse(processed);
+
+    // 7. Sanitize với DOMPurify
+    const cleanHtml = window.DOMPurify.sanitize(rawHtml, {
+      ADD_TAGS: ['iframe', 'math', 'semantics', 'mrow', 'mi', 'mn', 'mo', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'munderover', 'mtable', 'mtr', 'mtd', 'span', 'svg', 'path', 'annotation', 'div'],
+      ADD_ATTR: ['class', 'data-math-idx', 'target', 'allowfullscreen', 'frameborder', 'xmlns', 'viewBox', 'd', 'aria-hidden', 'display'],
+    });
+
     targetPreview.innerHTML = cleanHtml;
+
+    // 8. Render KaTeX trực tiếp vào các DOM target nodes
+    targetPreview.querySelectorAll('.katex-block-target, .katex-inline-target').forEach((el) => {
+      const idx = parseInt(el.getAttribute('data-math-idx'), 10);
+      const entry = mathEntries[idx];
+      if (entry) {
+        if (window.katex) {
+          try {
+            window.katex.render(entry.formula, el, {
+              displayMode: entry.display,
+              throwOnError: false,
+            });
+          } catch (e) {
+            console.warn('KaTeX render error:', entry.formula, e);
+            el.innerHTML = `<span class="text-red-500 font-mono text-xs">[Lỗi công thức: ${escapeHtml(entry.formula)}]</span>`;
+          }
+        } else {
+          el.textContent = entry.display ? `$$${entry.formula}$$` : `$${entry.formula}$`;
+        }
+      }
+    });
+
     attachCodeCopyButtons();
 
-    // Render KaTeX Math Equations ($...$, $$...$$)
-    if (window.renderMathInElement) {
-      try {
-        window.renderMathInElement(targetPreview, {
-          delimiters: [
-            { left: '$$', right: '$$', display: true },
-            { left: '$', right: '$', display: false },
-            { left: '\\(', right: '\\)', display: false },
-            { left: '\\[', right: '\\]', display: true },
-          ],
-          throwOnError: false,
-        });
-      } catch (err) {
-        console.warn('KaTeX render warning:', err);
-      }
-    }
-
-    // Build Table of Contents when translation completes
+    // Build Table of Contents when translation completes or on edit
     if (isFinal) {
       generateTableOfContents(content);
     }
