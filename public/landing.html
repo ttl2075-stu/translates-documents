@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="vi" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- SEO Primary Meta Tags -->
+  <title>AI Document Translator - Nền Tảng Dịch Tài Liệu Khoa Học & Markdown Bằng AI Chuẩn Xác Nhất</title>
+  <meta name="title" content="AI Document Translator - Nền Tảng Dịch Tài Liệu Khoa Học & Markdown Bằng AI Chuẩn Xác Nhất">
+  <meta name="description" content="Dịch thuật tài liệu Markdown, JSON, TXT bảo toàn 100% cấu trúc, công thức toán KaTeX, khối code và bảng biểu bằng AI DeepSeek & OpenAI. Hỗ trợ dịch nền siêu tốc, tự động gửi Email và thanh toán linh hoạt qua SePay VietQR.">
+  <meta name="keywords" content="dịch markdown, dịch tài liệu ai, translate markdown ai, openai translator, deepseek translate, dịch công thức toán katex, dịch json, ai document translation, dịch thuật khoa học, subscription translator, sepay vietqr">
+  <meta name="author" content="AI Document Translator">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <link rel="canonical" href="http://localhost:3000/">
+
+  <!-- Open Graph / Facebook / Zalo -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="http://localhost:3000/">
+  <meta property="og:title" content="AI Document Translator - Dịch Thuật Tài Liệu & Markdown Bằng AI Chuyên Nghiệp">
+  <meta property="og:description" content="Dịch tài liệu kỹ thuật, nghiên cứu khoa học, tài liệu lập trình bảo toàn cấu trúc code, công thức toán và bảng biểu chỉ trong vài giây.">
+  <meta property="og:image" content="http://localhost:3000/images/og-preview.png">
+  <meta property="og:locale" content="vi_VN">
+  <meta property="og:site_name" content="AI Document Translator">
+
+  <!-- Twitter / X -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="http://localhost:3000/">
+  <meta property="twitter:title" content="AI Document Translator - Dịch Thuật Tài Liệu Bằng AI Chuẩn Xác">
+  <meta property="twitter:description" content="Dịch tài liệu Markdown, JSON, TXT với khả năng bảo toàn cấu trúc hoàn hảo. Đăng ký nhận ngay gói dịch miễn phí!">
+  <meta property="twitter:image" content="http://localhost:3000/images/og-preview.png">
+
+  <!-- Microsoft Edge & Bing Webmaster Verification -->
+  <meta name="msapplication-TileColor" content="#2563eb">
+  <meta name="theme-color" content="#2563eb">
+
+  <!-- Schema.org Structured Data (JSON-LD) for Google, Bing & BingAI Copilot -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "http://localhost:3000/#organization",
+        "name": "AI Document Translator",
+        "url": "http://localhost:3000/",
+        "logo": "http://localhost:3000/images/logo.png",
+        "description": "Nền tảng dịch thuật tài liệu thông minh ứng dụng trí tuệ nhân tạo chuyên biệt cho tài liệu khoa học, kỹ thuật và markdown."
+      },
+      {
+        "@type": "WebSite",
+        "@id": "http://localhost:3000/#website",
+        "url": "http://localhost:3000/",
+        "name": "AI Document Translator",
+        "publisher": { "@id": "http://localhost:3000/#organization" },
+        "inLanguage": "vi"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "http://localhost:3000/#software",
+        "name": "AI Document Translator & Markdown Studio",
+        "operatingSystem": "All Web Browsers, Chrome, Edge, Safari, Firefox",
+        "applicationCategory": "BusinessApplication, DeveloperApplication, EducationalApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "VND"
+        },
+        "description": "Phần mềm dịch thuật tài liệu Markdown, JSON, TXT bảo toàn cấu trúc code, toán học KaTeX với các gói Subscription linh hoạt.",
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "ratingCount": "1280",
+          "bestRating": "5",
+          "worstRating": "1"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "http://localhost:3000/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "AI Document Translator có bảo toàn được công thức toán học và mã nguồn code không?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Có. Hệ thống sử dụng cơ chế bảo toàn cấu trúc thông minh với KaTeX và Code Block Marker, giữ nguyên vẹn 100% công thức toán học, biến số lập trình và thẻ Markdown định dạng."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Tôi có thể thanh toán nâng cấp gói cước bằng hình thức nào?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Bạn có thể thanh toán tự động 24/7 qua cổng SePay VietQR bằng bất kỳ ứng dụng ngân hàng nào (MBBank, Vietcombank, Techcombank, ACB...). Hệ thống tự động kích hoạt tài khoản trong vòng vài giây."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Tiến trình dịch nền (Background Job) hoạt động như thế nào?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Với tài liệu dung lượng lớn hoặc sách hàng trăm trang, hệ thống xử lý hoàn toàn trong nền server. Bạn có thể tắt trình duyệt và hệ thống sẽ tự động gửi file kết quả về email của bạn khi hoàn tất."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- Navigation Bar -->
+  <nav class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <a href="/" class="flex items-center gap-3 group">
+          <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+            <i class="fa-solid fa-file-invoice text-lg"></i>
+          </div>
+          <div>
+            <span class="font-extrabold text-lg text-slate-900 tracking-tight block">AI Document Translator</span>
+            <span class="text-[11px] font-medium text-blue-600 tracking-wider uppercase block">SaaS Translation Studio</span>
+          </div>
+        </a>
+
+        <!-- Desktop Menu -->
+        <div class="hidden md:flex items-center gap-8">
+          <a href="#features" class="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Tính Năng</a>
+          <a href="#how-it-works" class="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Quy Trình</a>
+          <a href="#pricing" class="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Bảng Giá</a>
+          <a href="#faq" class="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Hỏi Đáp</a>
+        </div>
+
+        <!-- Auth Actions -->
+        <div class="flex items-center gap-3">
+          <a href="/app" class="text-sm font-semibold text-slate-700 hover:text-blue-600 px-3 py-2">
+            Đăng nhập
+          </a>
+          <a href="/app" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5">
+            <span>Dùng Thử Miễn Phí</span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28">
+    <div class="absolute inset-0 -z-10 bg-[radial-gradient(45rem_50rem_at_top,theme(colors.blue.100),theme(colors.slate.50))] opacity-60"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      
+      <!-- Pill Badge -->
+      <div class="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-full mb-6">
+        <span class="flex h-2 w-2 rounded-full bg-blue-600 animate-ping"></span>
+        <span>Công Nghệ Dịch Thuật AI Bảo Toàn Cấu Trúc Độc Quyền</span>
+      </div>
+
+      <!-- Main Headline -->
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight max-w-4xl mx-auto leading-tight">
+        Dịch Tài Liệu Khoa Học & Markdown Chuẩn Xác Với <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Trí Tuệ Nhân Tạo</span>
+      </h1>
+
+      <p class="mt-6 text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
+        Giữ nguyên 100% công thức toán học KaTeX, khối lệnh lập trình, bảng biểu và cấu trúc tài liệu. Tự động chạy nền và gửi file kết quả trực tiếp qua Email.
+      </p>
+
+      <!-- CTA Buttons -->
+      <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="/app" class="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 text-base font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-lg hover:shadow-blue-500/25 transition-all transform hover:-translate-y-0.5">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Bắt Đầu Dịch Miễn Phí</span>
+        </a>
+        <a href="#pricing" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 text-base font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition-all shadow-xs">
+          <i class="fa-solid fa-tags text-blue-600"></i>
+          <span>Xem Bảng Giá Gói Cước</span>
+        </a>
+      </div>
+
+      <!-- Trust Badges -->
+      <div class="mt-12 flex flex-wrap items-center justify-center gap-8 text-xs font-semibold text-slate-500">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-check text-green-500 text-sm"></i>
+          <span>Miễn phí 20.000 ký tự/tháng</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-check text-green-500 text-sm"></i>
+          <span>Thanh toán VietQR kích hoạt 5s</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-check text-green-500 text-sm"></i>
+          <span>Hỗ trợ Markdown, JSON, TXT</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-check text-green-500 text-sm"></i>
+          <span>Bảo toàn KaTeX & Code</span>
+        </div>
+      </div>
+
+      <!-- App Preview Mockup -->
+      <div class="mt-14 relative max-w-5xl mx-auto rounded-2xl p-2 bg-slate-900/5 shadow-2xl border border-slate-200/80">
+        <div class="bg-white rounded-xl overflow-hidden border border-slate-200">
+          <div class="flex items-center justify-between px-4 py-3 bg-slate-100 border-b border-slate-200 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-red-400"></span>
+              <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+              <span class="w-3 h-3 rounded-full bg-green-400"></span>
+              <span class="ml-2 font-mono font-medium text-slate-600">AI Translation Studio &mdash; Live Preview</span>
+            </div>
+            <span class="text-blue-600 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-shield-halved"></i> 100% Structure Preserved
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 text-left text-xs sm:text-sm divide-y md:divide-y-0 md:divide-x divide-slate-200">
+            <!-- Source Preview -->
+            <div class="p-5 bg-slate-50 font-mono text-slate-700 leading-relaxed overflow-x-auto">
+              <div class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 font-sans">Văn bản nguồn (English)</div>
+              <p class="font-bold text-slate-900 mb-2"># Transformer Architecture</p>
+              <p class="text-slate-600 mb-3">The attention mechanism computes:</p>
+              <div class="bg-slate-200/70 p-2 rounded text-blue-800 font-bold mb-3">
+                $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+              </div>
+              <div class="bg-slate-800 text-emerald-400 p-2.5 rounded font-mono text-xs">
+                def forward(self, q, k, v):<br>
+                &nbsp;&nbsp;return torch.matmul(q, k.transpose(-2, -1))
+              </div>
+            </div>
+
+            <!-- Translated Preview -->
+            <div class="p-5 bg-white font-mono text-slate-800 leading-relaxed overflow-x-auto">
+              <div class="text-[11px] font-bold text-blue-600 uppercase tracking-wider mb-2 font-sans flex items-center gap-1">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Bản dịch Tiếng Việt (Bảo toàn định dạng)
+              </div>
+              <p class="font-bold text-blue-900 mb-2"># Kiến Trúc Transformer</p>
+              <p class="text-slate-700 mb-3">Cơ chế tự chú ý (Attention) được tính toán theo công thức:</p>
+              <div class="bg-blue-50 border border-blue-200 p-2 rounded text-blue-900 font-bold mb-3">
+                $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+              </div>
+              <div class="bg-slate-800 text-emerald-400 p-2.5 rounded font-mono text-xs">
+                def forward(self, q, k, v):<br>
+                &nbsp;&nbsp;return torch.matmul(q, k.transpose(-2, -1))
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Core Features Section -->
+  <section id="features" class="py-20 bg-white border-t border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-blue-600">Tính năng vượt trội</h2>
+        <p class="mt-2 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+          Giải pháp dịch thuật hoàn hảo cho giới công nghệ & nghiên cứu
+        </p>
+        <p class="mt-4 text-base text-slate-600">
+          Được thiết kế tỉ mỉ để giải quyết triệt để nỗi đau mất định dạng code, hỏng công thức toán và lỗi ngắt dòng khi dịch tài liệu dài.
+        </p>
+      </div>
+
+      <div class="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 hover:shadow-lg transition-all hover:border-blue-300 group">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl mb-5 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-code"></i>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 mb-2">Bảo toàn 100% Cấu Trúc</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Thuật toán phân tích cú pháp phân lập tuyệt đối các khối code Markdown, biến số toán học KaTeX, link, bảng biểu, chỉ dịch nội dung diễn giải.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 hover:shadow-lg transition-all hover:border-blue-300 group">
+          <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl mb-5 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-server"></i>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 mb-2">Tiến Trình Dịch Nền (Background Jobs)</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Dịch tài liệu lớn hàng trăm trang mà không cần treo máy trình duyệt. Hệ thống tự động xếp hàng, xử lý đa luồng và lưu vết an toàn.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 hover:shadow-lg transition-all hover:border-blue-300 group">
+          <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl mb-5 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-envelope-circle-check"></i>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 mb-2">Tự Động Gửi File Qua Email</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Ngay khi tiến trình dịch hoàn tất, file tài liệu hoàn chỉnh sẽ được đính kèm và gửi trực tiếp tới hòm thư cá nhân của bạn.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 hover:shadow-lg transition-all hover:border-blue-300 group">
+          <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl mb-5 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 mb-2">Trợ Lý AI Tinh Chỉnh & Linter</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Bôi chọn câu văn để yêu cầu AI dịch lại theo phong cách chuyên ngành, học thuật hoặc tự động sửa lỗi cú pháp Markdown với 1 click.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 hover:shadow-lg transition-all hover:border-blue-300 group">
+          <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-xl mb-5 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 mb-2">Thanh Toán SePay VietQR Tự Động</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Quét mã VietQR chuyển khoản từ mọi ngân hàng Việt Nam. Webhook SePay bảo mật HMAC-SHA256 kích hoạt gói cước ngay trong 5 giây.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-6 hover:shadow-lg transition-all hover:border-blue-300 group">
+          <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl mb-5 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-print"></i>
+          </div>
+          <h3 class="text-lg font-bold text-slate-900 mb-2">Xuất In Chuẩn Sách & PDF</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Định dạng xem trực tiếp hỗ trợ in ấn, xuất PDF chuẩn trang giấy A4 với mục lục tự động, ngắt trang thông minh và font chữ thanh lịch.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section id="how-it-works" class="py-20 bg-slate-50 border-t border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-xs font-bold uppercase tracking-widest text-blue-600">Quy trình đơn giản</h2>
+      <p class="mt-2 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+        Dịch tài liệu chất lượng cao chỉ với 3 bước
+      </p>
+
+      <div class="mt-14 grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 relative">
+          <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center mb-4">1</div>
+          <h3 class="text-base font-bold text-slate-900 mb-2">Tải lên hoặc dán nội dung</h3>
+          <p class="text-sm text-slate-600">Hỗ trợ file `.md`, `.json`, `.txt` hoặc nhập văn bản trực tiếp vào trình soạn thảo.</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 relative">
+          <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center mb-4">2</div>
+          <h3 class="text-base font-bold text-slate-900 mb-2">Chọn phong cách & Chạy dịch</h3>
+          <p class="text-sm text-slate-600">Lựa chọn phong cách kỹ thuật, học thuật hay văn học. Chọn dịch trực tiếp hoặc dịch nền gửi email.</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 relative">
+          <div class="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center mb-4">3</div>
+          <h3 class="text-base font-bold text-slate-900 mb-2">Xem bản dịch & Tải về</h3>
+          <p class="text-sm text-slate-600">Xem trực quan hai bên (Split-view), tinh chỉnh văn phong và tải file dịch hoặc in PDF ngay lập tức.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Table Section -->
+  <section id="pricing" class="py-20 bg-white border-t border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-blue-600">Bảng giá minh bạch</h2>
+        <p class="mt-2 text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+          Chọn gói cước phù hợp với nhu cầu của bạn
+        </p>
+        <p class="mt-4 text-base text-slate-600">
+          Nâng cấp nhanh chóng qua chuyển khoản VietQR tự động. Không phát sinh chi phí ẩn.
+        </p>
+      </div>
+
+      <div class="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Plan 1: Free -->
+        <div class="bg-slate-50 border border-slate-200 rounded-3xl p-8 flex flex-col justify-between hover:border-slate-300 transition-all">
+          <div>
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-bold text-slate-900">Gói Khởi Đầu</h3>
+              <span class="px-2.5 py-1 text-xs font-bold bg-slate-200 text-slate-700 rounded-full">Miễn phí</span>
+            </div>
+            <div class="mt-6 flex items-baseline">
+              <span class="text-4xl font-extrabold text-slate-900">0₫</span>
+              <span class="ml-2 text-sm text-slate-500">/ vĩnh viễn</span>
+            </div>
+            <p class="mt-3 text-xs text-slate-600">Phù hợp trải nghiệm dịch bài viết ngắn và tài liệu cá nhân.</p>
+            
+            <ul class="mt-8 space-y-3.5 text-xs text-slate-700 font-medium">
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-green-500 text-sm"></i>
+                <span><strong>20.000 ký tự</strong> / tháng</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-green-500 text-sm"></i>
+                <span>Bảo toàn Markdown, KaTeX & Code</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-green-500 text-sm"></i>
+                <span>1 luồng xử lý tiêu chuẩn</span>
+              </li>
+              <li class="flex items-center gap-2.5 text-slate-400">
+                <i class="fa-solid fa-xmark text-slate-300 text-sm"></i>
+                <span>Không có dịch nền bất đồng bộ</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="mt-8">
+            <a href="/app" class="block w-full py-3 text-center text-sm font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-xl transition-colors">
+              Bắt Đầu Miễn Phí
+            </a>
+          </div>
+        </div>
+
+        <!-- Plan 2: Pro (Featured) -->
+        <div class="bg-blue-600 text-white rounded-3xl p-8 flex flex-col justify-between shadow-xl relative scale-105 border-2 border-blue-500">
+          <div class="absolute -top-3.5 left-1/2 transform -translate-x-1/2 bg-amber-400 text-slate-950 text-xs font-black px-3.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+            Phổ Biến Nhất
+          </div>
+          <div>
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-bold text-white">Gói Chuyên Nghiệp</h3>
+              <span class="px-2.5 py-1 text-xs font-bold bg-blue-500/80 text-white rounded-full">Pro</span>
+            </div>
+            <div class="mt-6 flex items-baseline">
+              <span class="text-4xl font-black text-white">99.000₫</span>
+              <span class="ml-2 text-sm text-blue-100">/ tháng</span>
+            </div>
+            <p class="mt-3 text-xs text-blue-100">Lựa chọn lý tưởng cho lập trình viên, dịch giả và nghiên cứu sinh.</p>
+            
+            <ul class="mt-8 space-y-3.5 text-xs text-blue-50 font-medium">
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-amber-300 text-sm"></i>
+                <span><strong>500.000 ký tự</strong> / tháng (~300 trang)</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-amber-300 text-sm"></i>
+                <span><strong>Dịch nền (Background Jobs)</strong> siêu tốc</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-amber-300 text-sm"></i>
+                <span>Tự động gửi file kết quả qua Email</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-amber-300 text-sm"></i>
+                <span>Xử lý <strong>3 luồng đồng thời</strong></span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-amber-300 text-sm"></i>
+                <span>Trợ lý AI Tinh chỉnh prompt & Linter</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="mt-8">
+            <a href="/app" class="block w-full py-3 text-center text-sm font-extrabold text-blue-900 bg-amber-400 hover:bg-amber-300 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5">
+              Nâng Cấp Gói Pro Ngay
+            </a>
+          </div>
+        </div>
+
+        <!-- Plan 3: Enterprise -->
+        <div class="bg-slate-50 border border-slate-200 rounded-3xl p-8 flex flex-col justify-between hover:border-slate-300 transition-all">
+          <div>
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-bold text-slate-900">Gói Doanh Nghiệp</h3>
+              <span class="px-2.5 py-1 text-xs font-bold bg-indigo-100 text-indigo-700 rounded-full">Cao Cấp</span>
+            </div>
+            <div class="mt-6 flex items-baseline">
+              <span class="text-4xl font-extrabold text-slate-900">299.000₫</span>
+              <span class="ml-2 text-sm text-slate-500">/ tháng</span>
+            </div>
+            <p class="mt-3 text-xs text-slate-600">Dành cho nhóm phát triển, viện nghiên cứu và công ty tài liệu.</p>
+            
+            <ul class="mt-8 space-y-3.5 text-xs text-slate-700 font-medium">
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-green-500 text-sm"></i>
+                <span><strong>3.000.000 ký tự</strong> / tháng (~1.800 trang)</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-green-500 text-sm"></i>
+                <span>Mọi tính năng của gói Pro</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-green-500 text-sm"></i>
+                <span>Ưu tiên dịch siêu tốc (10 luồng song song)</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-green-500 text-sm"></i>
+                <span>Hỗ trợ tích hợp Custom LLM API Key</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <i class="fa-solid fa-check text-green-500 text-sm"></i>
+                <span>Hỗ trợ kỹ thuật ưu tiên 24/7</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="mt-8">
+            <a href="/app" class="block w-full py-3 text-center text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl transition-colors">
+              Đăng Ký Doanh Nghiệp
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="py-20 bg-slate-50 border-t border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-14">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-blue-600">Giải đáp thắc mắc</h2>
+        <p class="mt-2 text-3xl font-extrabold text-slate-900 tracking-tight">Câu hỏi thường gặp (FAQ)</p>
+      </div>
+
+      <div class="space-y-4">
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+          <h3 class="text-base font-bold text-slate-900 mb-2">Tôi thanh toán gói cước thì bao lâu tài khoản được kích hoạt?</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Hệ thống tích hợp cổng thanh toán SePay Webhook tự động 100%. Ngay sau khi bạn quét mã VietQR và chuyển khoản thành công, tài khoản của bạn sẽ được nâng cấp tự động chỉ sau 3 - 5 giây.
+          </p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+          <h3 class="text-base font-bold text-slate-900 mb-2">Hệ thống có bảo đảm các công thức toán KaTeX không bị dịch sai nghĩa không?</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Có! Bộ phân tích cú pháp chuyên biệt sẽ đóng băng toàn bộ nội dung trong $...$ và $$...$$ trước khi gửi đến mô hình ngôn ngữ AI, đảm bảo các biến số toán học, ký hiệu và biểu thức giữ nguyên vẹn 100%.
+          </p>
+        </div>
+
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+          <h3 class="text-base font-bold text-slate-900 mb-2">Nếu file tài liệu của tôi rất dài (vài trăm trang sách) thì sao?</h3>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Bạn hãy sử dụng tính năng "Tiến trình dịch nền" (Background Job). Bạn chỉ cần tải file lên và điền email nhận kết quả. Bạn có thể tắt máy đi làm việc khác, server sẽ tự động xử lý và gửi file hoàn tất về hòm thư cho bạn.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-slate-900 text-slate-400 py-12 border-t border-slate-800 text-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div class="space-y-3">
+        <div class="flex items-center gap-2 text-white font-bold text-base">
+          <i class="fa-solid fa-file-invoice text-blue-500"></i> AI Document Translator
+        </div>
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Nền tảng dịch thuật Markdown và tài liệu kỹ thuật chuẩn xác hàng đầu Việt Nam.
+        </p>
+      </div>
+
+      <div>
+        <h4 class="text-white font-semibold text-xs uppercase tracking-wider mb-3">Tính Năng</h4>
+        <ul class="space-y-2 text-xs">
+          <li><a href="/app" class="hover:text-white">Dịch Markdown & Code</a></li>
+          <li><a href="/app" class="hover:text-white">Bảo toàn KaTeX & Math</a></li>
+          <li><a href="/app" class="hover:text-white">Dịch Nền Gửi Email</a></li>
+          <li><a href="/app" class="hover:text-white">Trợ lý Linter Định Dạng</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-white font-semibold text-xs uppercase tracking-wider mb-3">Gói Dịch Vụ</h4>
+        <ul class="space-y-2 text-xs">
+          <li><a href="#pricing" class="hover:text-white">Gói Khởi Đầu (Free)</a></li>
+          <li><a href="#pricing" class="hover:text-white">Gói Chuyên Nghiệp (Pro)</a></li>
+          <li><a href="#pricing" class="hover:text-white">Gói Doanh Nghiệp</a></li>
+          <li><a href="/sitemap.xml" class="hover:text-white">Sitemap XML</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-white font-semibold text-xs uppercase tracking-wider mb-3">Thanh Toán & Hỗ Trợ</h4>
+        <p class="text-xs text-slate-400 mb-2">Thanh toán tự động qua cổng SePay & VietQR 24/7.</p>
+        <div class="flex items-center gap-2 text-slate-300 text-lg">
+          <i class="fa-solid fa-building-columns" title="Chuyển khoản Ngân Hàng"></i>
+          <i class="fa-solid fa-qrcode" title="VietQR"></i>
+          <i class="fa-solid fa-shield-check" title="Bảo mật HMAC-SHA256"></i>
+        </div>
+      </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pt-6 border-t border-slate-800 text-center text-xs text-slate-500">
+      &copy; 2026 AI Document Translator SaaS. Tất cả quyền được bảo lưu. Tối ưu cho Google, Edge, Bing & BingAI Copilot.
+    </div>
+  </footer>
+
+</body>
+</html>

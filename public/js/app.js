@@ -681,10 +681,11 @@ async function startTranslation() {
   activeAbortController = new AbortController();
 
   try {
+    const authHeaders = typeof getAuthHeaders === 'function' ? getAuthHeaders() : { 'Content-Type': 'application/json' };
     let streamUrl = '/api/translate-stream';
     let requestOptions = {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...authHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       signal: activeAbortController.signal,
     };
@@ -693,12 +694,16 @@ async function startTranslation() {
       // 1. Register background job on server
       const jobRes = await fetch('/api/jobs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (!jobRes.ok) {
-        throw new Error(`Không thể khởi tạo tiến trình nền (${jobRes.status})`);
+        const errData = await jobRes.json().catch(() => ({}));
+        if (jobRes.status === 403) {
+          if (typeof openUpgradeModal === 'function') openUpgradeModal();
+        }
+        throw new Error(errData.error || `Không thể khởi tạo tiến trình nền (${jobRes.status})`);
       }
 
       const jobData = await jobRes.json();
@@ -713,7 +718,7 @@ async function startTranslation() {
       streamUrl = `/api/jobs/${jobId}/stream`;
       requestOptions = {
         method: 'GET',
-        headers: { 'Accept': 'text/event-stream' },
+        headers: { ...authHeaders, 'Accept': 'text/event-stream' },
         signal: activeAbortController.signal,
       };
     }
@@ -721,7 +726,11 @@ async function startTranslation() {
     const response = await fetch(streamUrl, requestOptions);
 
     if (!response.ok) {
-      throw new Error(`HTTP error ${response.status}`);
+      const errData = await response.json().catch(() => ({}));
+      if (response.status === 403) {
+        if (typeof openUpgradeModal === 'function') openUpgradeModal();
+      }
+      throw new Error(errData.error || `HTTP error ${response.status}`);
     }
 
     const reader = response.body.getReader();
@@ -1408,7 +1417,8 @@ function setupJobsListeners() {
 
 async function refreshActiveJobsCount() {
   try {
-    const res = await fetch('/api/jobs');
+    const authHeaders = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+    const res = await fetch('/api/jobs', { headers: authHeaders });
     if (!res.ok) return;
     const data = await res.json();
     const activeJobs = (data.jobs || []).filter((j) => j.status === 'running' || j.status === 'pending');
@@ -1426,7 +1436,8 @@ async function checkActiveJobOnLoad() {
   if (!savedJobId) return;
 
   try {
-    const res = await fetch(`/api/jobs/${savedJobId}`);
+    const authHeaders = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+    const res = await fetch(`/api/jobs/${savedJobId}`, { headers: authHeaders });
     if (!res.ok) {
       localStorage.removeItem('active_translation_job');
       return;
@@ -1467,6 +1478,7 @@ function closeJobsModal() {
 // Expose globally for inline onclick fallback
 window.openJobsModal = openJobsModal;
 window.closeJobsModal = closeJobsModal;
+window.reloadJobsHistory = loadJobsList;
 
 // Document-level delegated click listener for maximum reliability
 document.addEventListener('click', (e) => {
@@ -1484,7 +1496,8 @@ async function loadJobsList() {
   jobsEmptyState.classList.add('hidden');
 
   try {
-    const res = await fetch('/api/jobs');
+    const authHeaders = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+    const res = await fetch('/api/jobs', { headers: authHeaders });
     const data = await res.json();
     const jobs = data.jobs || [];
 

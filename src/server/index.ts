@@ -4,27 +4,86 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config, updateRuntimeConfig } from '../config.js';
+import { getDatabase } from '../core/db/database.js';
 import { defaultRegistry } from '../core/adapters/registry.js';
 import { defaultEngine } from '../core/engine.js';
 import { defaultOpenAIService } from '../core/openai-service.js';
 import { defaultTranslationCache } from '../core/cache.js';
 import { TranslationOptions, TranslationProgress } from '../core/interfaces.js';
+import { defaultJobManager } from '../core/jobs/job-manager.js';
+import { defaultMailerService } from '../core/mailer.js';
+import { defaultFormatReviewer } from '../core/format-reviewer.js';
+import { defaultSubscriptionService } from '../core/subscription/subscription-service.js';
+
+// Route Handlers
+import { authRouter } from './routes/auth-routes.js';
+import { planRouter } from './routes/plan-routes.js';
+import { webhookRouter } from './routes/webhook-routes.js';
+import { adminRouter } from './routes/admin-routes.js';
+import { seoRouter } from './routes/seo-routes.js';
+import { optionalAuth, requireAuth, AuthenticatedRequest } from '../core/auth/auth-middleware.js';
+
+import { initDatabase } from '../core/db/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, '../../public');
 
+// Initialize MySQL Database
+try {
+  await initDatabase();
+  console.log(`🐬 Đã khởi tạo và kết nối thành công tới CSDL MySQL: ${config.dbUser}@${config.dbHost}:${config.dbPort}/${config.dbName}`);
+} catch (err: any) {
+  console.error(`❌ Lỗi kết nối CSDL MySQL (${config.dbHost}:${config.dbPort}):`, err.message);
+}
+
 const app = express();
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB limit
+  limits: { fileSize: 30 * 1024 * 1024 }, // 30 MB limit
 });
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '25mb' }));
-app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+// SePay Webhook MUST receive raw body for HMAC signature verification
+app.use('/api/webhooks/sepay', express.raw({ type: '*/*' }));
+app.use('/api/webhooks', webhookRouter);
+
+// General JSON & URL-encoded parsing for standard API endpoints
+app.use(express.json({ limit: '35mb' }));
+app.use(express.urlencoded({ extended: true, limit: '35mb' }));
+
+// SEO & Sitemap Routes
+app.use(seoRouter);
+
+// Static files
 app.use(express.static(publicDir));
+
+// Explicit route for Studio Workspace
+app.get('/app', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+// Landing Page alias
+app.get('/landing', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'landing.html'));
+});
+
+// Root: Serve Landing page by default for optimal SEO conversion
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'landing.html'));
+});
+
+// Admin Panel alias
+app.get('/admin', (_req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+// Mount Feature Routers
+app.use('/api/auth', authRouter);
+app.use('/api/plans', planRouter);
+app.use('/api/admin', adminRouter);
 
 // 1. Get current backend configuration
 app.get('/api/config', (_req, res) => {
@@ -114,12 +173,23 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // 7. Direct Translation API
-app.post('/api/translate', async (req, res) => {
+app.post('/api/translate', optionalAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const { content, filename = 'document.md', adapterId, options } = req.body;
 
     if (!content || typeof content !== 'string') {
       return res.status(400).json({ error: 'Nội dung tài liệu cần dịch không được để trống.' });
+    }
+
+    // Quota check for logged-in users
+    if (req.subscription) {
+      const sub = req.subscription;
+      const remaining = Math.max(0, sub.charLimitMonthly - sub.charsUsedMonth);
+      if (sub.planId !== 'enterprise' && content.length > remaining) {
+        return res.status(403).json({
+          error: `Tài liệu (${content.length.toLocaleString()} ký tự) vượt quá hạn mức còn lại (${remaining.toLocaleString()} ký tự). Vui lòng nâng cấp gói cước.`,
+        });
+      }
     }
 
     const result = await defaultEngine.translateDocument(content, {
@@ -128,13 +198,15 @@ app.post('/api/translate', async (req, res) => {
       options: options as TranslationOptions,
     });
 
+    if (req.user) {
+      defaultSubscriptionService.recordUsage(req.user.id, content.length);
+    }
+
     res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 });
-
-import { defaultFormatReviewer } from '../core/format-reviewer.js';
 
 // 7.1. Targeted Text Refinement / Prompt Edit API
 app.post('/api/refine', async (req, res) => {
@@ -198,19 +270,29 @@ app.post('/api/review-format', async (req, res) => {
   }
 });
 
-// 8. Resilient SSE Streaming Translation API with Keep-alive & Abort handling
-app.post('/api/translate-stream', async (req, res) => {
+// 8. Resilient SSE Streaming Translation API
+app.post('/api/translate-stream', optionalAuth, async (req: AuthenticatedRequest, res) => {
   const { content, filename = 'document.md', adapterId, options } = req.body;
 
   if (!content || typeof content !== 'string') {
     return res.status(400).json({ error: 'Nội dung tài liệu không được để trống.' });
   }
 
-  // Set SSE Headers
+  // Quota check
+  if (req.subscription) {
+    const sub = req.subscription;
+    const remaining = Math.max(0, sub.charLimitMonthly - sub.charsUsedMonth);
+    if (sub.planId !== 'enterprise' && content.length > remaining) {
+      return res.status(403).json({
+        error: `Tài liệu vượt quá hạn mức còn lại trong tháng (${remaining.toLocaleString()} ký tự). Vui lòng nâng cấp gói cước.`,
+      });
+    }
+  }
+
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
-    'X-Accel-Buffering': 'no', // Disable proxy buffering
+    'X-Accel-Buffering': 'no',
     Connection: 'keep-alive',
   });
   if (typeof (res as any).flushHeaders === 'function') {
@@ -233,7 +315,6 @@ app.post('/api/translate-stream', async (req, res) => {
     }
   };
 
-  // Send initial ping event immediately
   sendEvent('progress', {
     currentChunk: 0,
     totalChunks: 1,
@@ -242,7 +323,6 @@ app.post('/api/translate-stream', async (req, res) => {
     message: 'Đang kết nối backend và phân tích cấu trúc tài liệu...',
   });
 
-  // Keep-alive heartbeat interval
   const heartbeat = setInterval(() => {
     if (!isAborted && !res.writableEnded) {
       res.write(':keepalive\n\n');
@@ -265,6 +345,10 @@ app.post('/api/translate-stream', async (req, res) => {
       },
     });
 
+    if (req.user) {
+      defaultSubscriptionService.recordUsage(req.user.id, content.length);
+    }
+
     sendEvent('complete', result);
   } catch (error: any) {
     sendEvent('error', { message: error.message });
@@ -274,13 +358,10 @@ app.post('/api/translate-stream', async (req, res) => {
   }
 });
 
-import { defaultJobManager } from '../core/jobs/job-manager.js';
-import { defaultMailerService } from '../core/mailer.js';
-
-// 9. Background Jobs Management Endpoints
+// 9. Multi-user Background Jobs Management Endpoints
 
 // 9.1. Create & Start Background Translation Job
-app.post('/api/jobs', async (req, res) => {
+app.post('/api/jobs', optionalAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const { content, filename = 'document.md', adapterId, options, recipientEmail, apiOverride } = req.body;
 
@@ -288,12 +369,27 @@ app.post('/api/jobs', async (req, res) => {
       return res.status(400).json({ error: 'Nội dung tài liệu không được để trống.' });
     }
 
+    // Quota check
+    if (req.subscription) {
+      const sub = req.subscription;
+      const remaining = Math.max(0, sub.charLimitMonthly - sub.charsUsedMonth);
+      if (sub.planId !== 'enterprise' && content.length > remaining) {
+        return res.status(403).json({
+          error: `Tài liệu (${content.length.toLocaleString()} ký tự) vượt quá hạn mức còn lại (${remaining.toLocaleString()} ký tự). Vui lòng nâng cấp gói cước.`,
+        });
+      }
+    }
+
+    const userId = req.user ? req.user.id : 'usr_guest';
+    const emailToUse = recipientEmail || (req.user ? req.user.email : undefined);
+
     const job = defaultJobManager.createJob({
+      userId,
       rawContent: content,
       filename,
       adapterId,
       options: options as TranslationOptions,
-      recipientEmail,
+      recipientEmail: emailToUse,
       apiOverride,
     });
 
@@ -310,29 +406,35 @@ app.post('/api/jobs', async (req, res) => {
   }
 });
 
-// 9.2. List All Jobs
-app.get('/api/jobs', (_req, res) => {
-  const jobs = defaultJobManager.getAllJobs();
+// 9.2. List Jobs (User-scoped or Admin-wide)
+app.get('/api/jobs', optionalAuth, (req: AuthenticatedRequest, res) => {
+  const userId = req.user ? req.user.id : undefined;
+  const isAdmin = req.user?.role === 'admin';
+  const jobs = defaultJobManager.getAllJobs(userId, isAdmin);
   res.json({ jobs });
 });
 
-// 9.3. Get Job Details & Result
-app.get('/api/jobs/:id', (req, res) => {
+// 9.3. Get Job Details
+app.get('/api/jobs/:id', optionalAuth, (req: AuthenticatedRequest, res) => {
   const job = defaultJobManager.getJob(req.params.id);
   if (!job) {
     return res.status(404).json({ error: 'Không tìm thấy tiến trình.' });
   }
+
+  if (req.user && req.user.role !== 'admin' && job.userId !== 'usr_guest' && job.userId !== req.user.id) {
+    return res.status(403).json({ error: 'Bạn không có quyền truy cập tiến trình này.' });
+  }
+
   res.json({ job });
 });
 
-// 9.4. Stream Job Live Progress via SSE (Supports Reconnection)
+// 9.4. Stream Job Live Progress via SSE
 app.get('/api/jobs/:id/stream', (req, res) => {
   const job = defaultJobManager.getJob(req.params.id);
   if (!job) {
     return res.status(404).json({ error: 'Không tìm thấy tiến trình.' });
   }
 
-  // Set SSE Headers
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
@@ -352,7 +454,6 @@ app.get('/api/jobs/:id/stream', (req, res) => {
     }
   };
 
-  // Send current state immediately upon subscribing/reconnecting
   sendEvent('status', { status: job.status, job });
   sendEvent('progress', job.progress);
 
@@ -366,7 +467,6 @@ app.get('/api/jobs/:id/stream', (req, res) => {
     return res.end();
   }
 
-  // Keep-alive heartbeat
   const heartbeat = setInterval(() => {
     if (!res.writableEnded) {
       res.write(':keepalive\n\n');
@@ -390,7 +490,7 @@ app.get('/api/jobs/:id/stream', (req, res) => {
   });
 });
 
-// 9.5. Abort / Cancel Running Job
+// 9.5. Abort Job
 app.post('/api/jobs/:id/abort', (req, res) => {
   const success = defaultJobManager.abortJob(req.params.id);
   if (success) {
@@ -410,7 +510,7 @@ app.delete('/api/jobs/:id', (req, res) => {
   }
 });
 
-// 9.7. Download Translated File directly
+// 9.7. Download Translated File
 app.get('/api/jobs/:id/download', (req, res) => {
   const job = defaultJobManager.getJob(req.params.id);
   if (!job || !job.translatedContent) {
@@ -429,7 +529,7 @@ app.get('/api/jobs/:id/download', (req, res) => {
   res.send(job.translatedContent);
 });
 
-// 10. SMTP Mail Server Status (Configured purely via .env)
+// 10. SMTP Mail Server Status
 app.get('/api/email/status', (_req, res) => {
   res.json({
     configured: Boolean(config.smtpHost && config.smtpHost.trim().length > 0),
@@ -447,11 +547,13 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
 // Start Server
 const server = app.listen(config.port, () => {
   console.log(`====================================================`);
-  console.log(`🚀 AI Document Translator Server đang chạy tại:`);
+  console.log(`🚀 AI Document Translator & SaaS Platform đang chạy tại:`);
   console.log(`👉 http://localhost:${config.port}`);
+  console.log(`🌐 Landing Page: http://localhost:${config.port}/`);
+  console.log(`💻 Studio App: http://localhost:${config.port}/app`);
   console.log(`⚙️  API Base URL: ${config.openaiBaseUrl}`);
   console.log(`🤖 Model: ${config.openaiModel}`);
-  console.log(`🔑 API Key: ${config.openaiApiKey ? 'Đã cấu hình' : 'Chưa thiết lập'}`);
+  console.log(`💳 SePay Webhook: http://localhost:${config.port}/api/webhooks/sepay`);
   console.log(`====================================================`);
 });
 

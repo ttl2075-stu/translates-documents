@@ -20,16 +20,22 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "google-auth-library": "^11.0.2",
+    "jsonwebtoken": "^9.0.3",
     "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.23.3",
     "nodemailer": "^9.0.5",
     "openai": "^4.85.4"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^1.4.12",
     "@types/node": "^22.13.4",
     "@types/nodemailer": "^8.0.1",

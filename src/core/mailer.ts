@@ -158,6 +158,34 @@ export class MailerService {
       };
     }
   }
+
+  /**
+   * Sends arbitrary notification or transactional email
+   */
+  async sendCustomEmail(options: { to: string; subject: string; html: string; text?: string }): Promise<EmailDeliveryResult> {
+    try {
+      const transporter = this.getTransporter();
+      const info = await transporter.sendMail({
+        from: config.smtpFrom,
+        to: options.to,
+        subject: options.subject,
+        html: options.html,
+        text: options.text,
+      });
+
+      return {
+        success: true,
+        messageId: info.messageId,
+      };
+    } catch (error: any) {
+      console.error('Lỗi khi gửi email:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }
 
 export const defaultMailerService = new MailerService();
+

@@ -41,6 +41,9 @@
   <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/diff@5.2.0/dist/diff.min.js"></script>
   
+  <!-- Google Identity Services (OAuth 2.0 & One-Tap) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
   <!-- Custom Stylesheet with Print Layout -->
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -51,38 +54,69 @@
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <!-- Logo & Title -->
       <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
+        <a href="/" class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs hover:opacity-90" title="Về trang chủ Landing Page">
           <i class="fa-solid fa-file-invoice text-base"></i>
-        </div>
+        </a>
         <div>
           <div class="flex items-center gap-2">
             <h1 class="text-sm font-bold text-slate-900 tracking-tight">AI Document Translator & Viewer</h1>
-            <span class="inline-flex items-center px-1.5 py-0.2 text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200/60 rounded">
-              <i class="fa-solid fa-bolt-lightning text-[9px] mr-1"></i> OpenAI Engine
-            </span>
+            <a href="/" class="hidden sm:inline-flex items-center text-[11px] font-medium text-slate-500 hover:text-blue-600">
+              <i class="fa-solid fa-house text-[10px] mr-1"></i> Trang chủ
+            </a>
           </div>
         </div>
       </div>
 
-      <!-- Header Top Actions -->
+      <!-- Header Top Actions & User Auth Area -->
       <div class="flex items-center gap-2">
+        <!-- Upgrade Button with Plan Badge -->
+        <button onclick="openUpgradeModal()" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-md transition-all shadow-xs cursor-pointer" title="Nâng cấp gói cước dịch thuật">
+          <i class="fa-solid fa-crown text-amber-500"></i>
+          <span id="user-sub-badge">Miễn phí</span>
+          <span class="text-[10px] font-normal text-amber-700 hidden sm:inline">&bull; Nâng cấp</span>
+        </button>
+
+        <!-- Admin Panel Button (shown only for admin) -->
+        <button id="btn-admin-panel" onclick="openAdminModal()" class="hidden inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-300 rounded-md transition-colors shadow-xs cursor-pointer" title="Bảng quản trị hệ thống">
+          <i class="fa-solid fa-user-shield"></i>
+          <span>Quản trị</span>
+        </button>
+
         <!-- Background Jobs Manager Button with live counter badge -->
         <button id="btn-open-jobs-modal" onclick="openJobsModal()" class="relative inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-blue-600 rounded-md transition-colors shadow-xs cursor-pointer" title="Quản lý các tiến trình dịch chạy nền (Treo máy server & Hủy tác vụ)">
           <i class="fa-solid fa-list-check text-blue-600"></i>
-          <span>Tiến trình nền</span>
+          <span class="hidden sm:inline">Tiến trình nền</span>
           <span id="active-jobs-badge" class="hidden ml-1 px-1.5 py-0.2 text-[10px] font-bold bg-blue-600 text-white rounded-full">0</span>
         </button>
 
         <button id="btn-toggle-input" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors" title="Ẩn/Hiện khung nhập dữ liệu nguồn">
           <i class="fa-solid fa-pen-to-square text-blue-600"></i>
-          <span id="input-toggle-label">Nhập nguồn</span>
+          <span id="input-toggle-label" class="hidden sm:inline">Nhập nguồn</span>
         </button>
 
         <label for="file-open-markdown" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md cursor-pointer transition-colors shadow-xs" title="Mở file Markdown có sẵn từ máy tính để xem và in">
           <i class="fa-regular fa-folder-open text-amber-600"></i>
-          <span>Mở file .md</span>
+          <span class="hidden sm:inline">Mở file</span>
         </label>
         <input type="file" id="file-open-markdown" accept=".md,.markdown,.json,.txt" class="hidden">
+
+        <!-- User Guest Area (Not logged in) -->
+        <div id="auth-guest-area" class="flex items-center gap-1.5">
+          <button onclick="openAuthModal('login')" class="px-2.5 py-1 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors">
+            Đăng nhập
+          </button>
+        </div>
+
+        <!-- User Logged-in Area -->
+        <div id="auth-user-area" class="hidden flex items-center gap-2 border-l border-slate-200 pl-2">
+          <button onclick="openProfileModal()" class="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100 rounded-md transition-colors" title="Tài khoản & Hạn mức">
+            <i class="fa-solid fa-circle-user text-blue-600 text-sm"></i>
+            <span id="user-display-name" class="max-w-[100px] truncate hidden md:inline">User</span>
+          </button>
+          <button onclick="logout()" class="p-1 text-slate-400 hover:text-red-600 text-xs" title="Đăng xuất">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -569,10 +603,412 @@
     </div>
   </div>
 
+  <!-- 1. Authentication Modal (Login / Register / Forgot Password) -->
+  <div id="auth-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in">
+      <!-- Tabs Header -->
+      <div class="flex items-center border-b border-slate-200 bg-slate-50 px-4 pt-3">
+        <button id="tab-btn-login" onclick="switchAuthTab('login')" class="flex-1 py-2 font-bold text-sm text-blue-600 border-b-2 border-blue-600">
+          Đăng Nhập
+        </button>
+        <button id="tab-btn-register" onclick="switchAuthTab('register')" class="flex-1 py-2 font-bold text-sm text-slate-500 border-b-2 border-transparent hover:text-slate-800">
+          Đăng Ký
+        </button>
+        <button onclick="closeAuthModal()" class="text-slate-400 hover:text-slate-600 p-2 text-lg font-bold leading-none">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6">
+        <!-- Error Alert -->
+        <div id="login-error-msg" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold bg-red-50 text-red-600 border border-red-200"></div>
+        <div id="reg-error-msg" class="hidden mb-4 p-3 rounded-lg text-xs font-semibold bg-red-50 text-red-600 border border-red-200"></div>
+
+        <!-- Login Form -->
+        <form id="auth-login-form" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Email đăng nhập</label>
+            <input type="email" id="login-email" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden" placeholder="name@example.com">
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-bold text-slate-700">Mật khẩu</label>
+              <button type="button" onclick="switchAuthTab('forgot')" class="text-xs text-blue-600 hover:underline">Quên mật khẩu?</button>
+            </div>
+            <input type="password" id="login-password" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden" placeholder="••••••••">
+          </div>
+          <button type="submit" id="btn-submit-login" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg shadow-sm transition-all">
+            Đăng nhập
+          </button>
+        </form>
+
+        <!-- Register Form -->
+        <form id="auth-register-form" onsubmit="handleRegisterSubmit(event)" class="hidden space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Họ và tên</label>
+            <input type="text" id="reg-name" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden" placeholder="Nguyễn Văn A">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Email</label>
+            <input type="email" id="reg-email" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden" placeholder="name@example.com">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Mật khẩu (tối thiểu 6 ký tự)</label>
+            <input type="password" id="reg-password" minlength="6" required class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden" placeholder="••••••••">
+          </div>
+          <button type="submit" id="btn-submit-register" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg shadow-sm transition-all">
+            Đăng ký tài khoản
+          </button>
+        </form>
+
+        <!-- Google OAuth Sign In Divider & Button (Hiển thị ở tab Login và Register) -->
+        <div id="auth-social-section" class="mt-4 pt-4 border-t border-slate-200">
+          <div class="relative flex py-1 items-center mb-3">
+            <div class="flex-grow border-t border-slate-200"></div>
+            <span class="flex-shrink mx-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">hoặc</span>
+            <div class="flex-grow border-t border-slate-200"></div>
+          </div>
+
+          <div id="google-btn-container" class="flex justify-center w-full min-h-[40px]">
+            <!-- Google GIS Button Render Target -->
+            <button type="button" id="btn-google-fallback" onclick="loginWithGoogleRedirect()" class="w-full flex items-center justify-center gap-2.5 py-2 px-4 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-300 rounded-lg shadow-xs transition-all">
+              <svg class="w-4 h-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+              </svg>
+              <span>Tiếp tục với Google</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <form id="auth-forgot-form" onsubmit="handleForgotSubmit(event)" class="hidden space-y-4">
+          <div class="text-center mb-2">
+            <h4 class="font-bold text-sm text-slate-800">Khôi phục mật khẩu</h4>
+            <p class="text-xs text-slate-500 mt-1">Mã xác thực OTP sẽ được gửi về email của bạn</p>
+          </div>
+          <div id="forgot-msg" class="hidden"></div>
+          
+          <div id="forgot-step-1">
+            <label class="block text-xs font-bold text-slate-700 mb-1">Nhập Email tài khoản</label>
+            <input type="email" id="forgot-email" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden" placeholder="name@example.com">
+          </div>
+
+          <div id="forgot-step-2" class="hidden space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Mã xác thực 6 số (OTP)</label>
+              <input type="text" id="forgot-otp" maxlength="6" class="w-full px-3 py-2 text-center font-mono font-bold tracking-widest text-base border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden" placeholder="123456">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Mật khẩu mới</label>
+              <input type="password" id="forgot-new-password" minlength="6" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden" placeholder="••••••••">
+            </div>
+          </div>
+
+          <button type="submit" id="btn-submit-forgot" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-lg shadow-sm transition-all">
+            Gửi mã xác nhận
+          </button>
+          <div class="text-center">
+            <button type="button" onclick="switchAuthTab('login')" class="text-xs text-slate-500 hover:text-blue-600">Quay lại Đăng nhập</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. User Profile & Quota Modal -->
+  <div id="profile-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-fade-in">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+          <i class="fa-solid fa-id-card text-blue-600"></i> Thông Tin Tài Khoản & Gói Cước
+        </h3>
+        <button onclick="closeProfileModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <!-- Subscription Status Card -->
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-blue-900 uppercase">Gói dịch vụ hiện tại</span>
+            <span id="prof-plan-name" class="px-2.5 py-0.5 text-xs font-extrabold bg-blue-600 text-white rounded-full">Gói Khởi Đầu</span>
+          </div>
+          <div class="space-y-1 text-xs text-slate-700">
+            <div class="flex justify-between">
+              <span>Hạn mức tháng:</span>
+              <strong id="prof-quota-text" class="font-mono">0 / 20.000 ký tự</strong>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden my-1.5">
+              <div id="user-quota-bar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-[11px] text-slate-500">
+              <span>Thời hạn:</span>
+              <span id="prof-expire-text">Vĩnh viễn</span>
+            </div>
+          </div>
+          <button onclick="closeProfileModal(); openUpgradeModal();" class="mt-3 w-full py-1.5 bg-amber-400 hover:bg-amber-300 text-blue-950 font-bold text-xs rounded-lg transition-all shadow-xs">
+            <i class="fa-solid fa-crown mr-1"></i> Nâng Cấp Gói Cao Hơn
+          </button>
+        </div>
+
+        <!-- Profile Update Form -->
+        <form onsubmit="handleProfileSave(event)" class="space-y-3">
+          <div id="prof-error-msg" class="hidden p-2 rounded text-xs font-semibold bg-red-50 text-red-600"></div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Họ tên</label>
+            <input type="text" id="prof-name" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-hidden">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Email</label>
+            <input type="email" id="prof-email" disabled class="w-full px-3 py-2 text-sm border border-slate-200 bg-slate-100 text-slate-500 rounded-lg cursor-not-allowed">
+          </div>
+          <div class="border-t border-slate-100 pt-3">
+            <span class="block text-xs font-bold text-slate-700 mb-2">Đổi mật khẩu (để trống nếu không đổi)</span>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="password" id="prof-curr-pass" placeholder="Mật khẩu cũ" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg">
+              <input type="password" id="prof-new-pass" placeholder="Mật khẩu mới" class="w-full px-3 py-1.5 text-xs border border-slate-300 rounded-lg">
+            </div>
+          </div>
+          <button type="submit" id="btn-save-profile" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm">
+            Lưu thay đổi
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Subscription Upgrade Modal -->
+  <div id="upgrade-modal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+      <div class="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h3 class="font-extrabold text-base text-slate-900">Bảng Giá & Nâng Cấp Gói Cước</h3>
+          <p class="text-xs text-slate-500">Tự động kích hoạt sau khi quét mã VietQR qua cổng SePay</p>
+        </div>
+        <button onclick="closeUpgradeModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto">
+        <div id="upgrade-plans-grid" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- Dynamic Plan Cards loaded via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. SePay VietQR Payment Modal -->
+  <div id="vietqr-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in">
+      <div class="px-5 py-3 bg-blue-600 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2 font-bold text-sm">
+          <i class="fa-solid fa-qrcode"></i> Thanh Toán Tự Động SePay
+        </div>
+        <button onclick="closeVietQRModal()" class="text-blue-200 hover:text-white text-xl font-bold">&times;</button>
+      </div>
+
+      <div id="vietqr-content-box" class="p-5 text-center space-y-4">
+        <p class="text-xs text-slate-600">Quét mã QR bằng App Ngân hàng bất kỳ để hoàn tất thanh toán</p>
+        
+        <!-- QR Code Image -->
+        <div class="inline-block p-3 bg-white border-2 border-blue-500 rounded-xl shadow-md">
+          <img id="qr-image" src="" alt="Mã VietQR" class="w-52 h-52 object-contain mx-auto">
+        </div>
+
+        <!-- Transfer Information Details with Copy Buttons -->
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left space-y-2 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Ngân hàng:</span>
+            <span id="qr-bank-info" class="font-bold text-slate-800">MBBank</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Số tiền:</span>
+            <div class="flex items-center gap-1.5">
+              <span id="qr-amount" class="font-black text-sm text-green-600">99.000 VNĐ</span>
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500">Nội dung CK:</span>
+            <div class="flex items-center gap-1.5">
+              <span id="qr-order-code" class="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">TRANS1234</span>
+              <button onclick="copyToClipboard(document.getElementById('qr-order-code').textContent, this)" class="px-2 py-0.5 text-[10px] font-bold bg-white border border-slate-300 hover:bg-slate-100 rounded">
+                Sao chép
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="qr-status-text" class="text-xs font-semibold py-1">
+          <i class="fa-solid fa-spinner fa-spin text-blue-600"></i> Đang chờ nhận tiền từ SePay...
+        </div>
+      </div>
+
+      <!-- Payment Success Box (Shown when paid) -->
+      <div id="vietqr-success-box" class="hidden p-8 text-center space-y-4">
+        <div class="w-16 h-16 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-3xl mx-auto animate-bounce">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <h4 class="font-black text-lg text-slate-900">Thanh Toán Thành Công!</h4>
+        <p class="text-xs text-slate-600">Cảm ơn bạn! Gói cước và hạn mức mới đã được kích hoạt trên tài khoản.</p>
+        <button onclick="closeVietQRModal()" class="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold text-sm rounded-xl transition-all shadow-md">
+          Bắt đầu dịch ngay
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Admin Management Portal Modal -->
+  <div id="admin-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+      <!-- Admin Header -->
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center">
+            <i class="fa-solid fa-user-shield text-base"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm">Hệ Thống Quản Trị SaaS & Subscription</h3>
+            <p class="text-xs text-slate-400">Quản lý người dùng, gói cước, giao dịch SePay và cài đặt</p>
+          </div>
+        </div>
+        <button onclick="closeAdminModal()" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- Admin Tabs Navigation -->
+      <div class="flex items-center gap-2 px-6 py-2.5 bg-slate-50 border-b border-slate-200 overflow-x-auto">
+        <button id="admin-btn-tab-stats" onclick="switchAdminTab('stats')" class="px-3 py-1.5 font-bold text-xs bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
+          <i class="fa-solid fa-chart-pie mr-1"></i> Thống Kê
+        </button>
+        <button id="admin-btn-tab-users" onclick="switchAdminTab('users')" class="px-3 py-1.5 font-medium text-xs text-slate-600 hover:bg-slate-100 rounded-lg">
+          <i class="fa-solid fa-users mr-1"></i> Người Dùng
+        </button>
+        <button id="admin-btn-tab-plans" onclick="switchAdminTab('plans')" class="px-3 py-1.5 font-medium text-xs text-slate-600 hover:bg-slate-100 rounded-lg">
+          <i class="fa-solid fa-tags mr-1"></i> Gói Cước
+        </button>
+        <button id="admin-btn-tab-transactions" onclick="switchAdminTab('transactions')" class="px-3 py-1.5 font-medium text-xs text-slate-600 hover:bg-slate-100 rounded-lg">
+          <i class="fa-solid fa-money-bill-transfer mr-1"></i> Giao Dịch SePay
+        </button>
+        <button id="admin-btn-tab-settings" onclick="switchAdminTab('settings')" class="px-3 py-1.5 font-medium text-xs text-slate-600 hover:bg-slate-100 rounded-lg">
+          <i class="fa-solid fa-gears mr-1"></i> Cài Đặt
+        </button>
+      </div>
+
+      <!-- Admin Tab Contents -->
+      <div class="flex-1 p-6 overflow-y-auto">
+        
+        <!-- Tab 1: Stats Overview -->
+        <div id="admin-tab-stats" class="space-y-6">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4">
+              <span class="text-xs font-semibold text-blue-600">Tổng doanh thu</span>
+              <div id="admin-stat-rev" class="text-2xl font-black text-blue-950 mt-1">0₫</div>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+              <span class="text-xs font-semibold text-emerald-600">Tổng người dùng</span>
+              <div id="admin-stat-users" class="text-2xl font-black text-emerald-950 mt-1">0</div>
+            </div>
+            <div class="bg-purple-50 border border-purple-200 rounded-2xl p-4">
+              <span class="text-xs font-semibold text-purple-600">Gói trả phí đang chạy</span>
+              <div id="admin-stat-subs" class="text-2xl font-black text-purple-950 mt-1">0</div>
+            </div>
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+              <span class="text-xs font-semibold text-amber-600">Tổng tác vụ dịch</span>
+              <div id="admin-stat-jobs" class="text-2xl font-black text-amber-950 mt-1">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Users Management -->
+        <div id="admin-tab-users" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <input type="text" id="admin-user-search" oninput="loadAdminUsers()" placeholder="Tìm theo tên hoặc email..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg w-72 focus:outline-hidden">
+            <button onclick="loadAdminUsers()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">
+              <i class="fa-solid fa-rotate mr-1"></i> Làm mới
+            </button>
+          </div>
+
+          <div class="overflow-x-auto border border-slate-200 rounded-xl">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-200">
+                  <th class="py-2.5 px-3">Người dùng</th>
+                  <th class="py-2.5 px-3">Vai trò</th>
+                  <th class="py-2.5 px-3">Gói cước</th>
+                  <th class="py-2.5 px-3">Đã dùng tháng</th>
+                  <th class="py-2.5 px-3">Trạng thái</th>
+                  <th class="py-2.5 px-3 text-right">Hành động</th>
+                </tr>
+              </thead>
+              <tbody id="admin-users-tbody">
+                <!-- Users list dynamic -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: Plans Management -->
+        <div id="admin-tab-plans" class="hidden space-y-4">
+          <div id="admin-plans-list" class="space-y-3">
+            <!-- Plans list dynamic -->
+          </div>
+        </div>
+
+        <!-- Tab 4: SePay Transactions Log -->
+        <div id="admin-tab-transactions" class="hidden space-y-4">
+          <div class="overflow-x-auto border border-slate-200 rounded-xl">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-[11px] font-bold text-slate-500 uppercase border-b border-slate-200">
+                  <th class="py-2.5 px-3">Mã GD</th>
+                  <th class="py-2.5 px-3">Ngân hàng</th>
+                  <th class="py-2.5 px-3">Số tiền</th>
+                  <th class="py-2.5 px-3">Nội dung</th>
+                  <th class="py-2.5 px-3">Thời gian</th>
+                </tr>
+              </thead>
+              <tbody id="admin-tx-tbody">
+                <!-- Transactions list dynamic -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 5: System Settings -->
+        <div id="admin-tab-settings" class="hidden space-y-4 max-w-lg">
+          <form onsubmit="handleSaveAdminSettings(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tên Ngân Hàng (VietQR)</label>
+              <input type="text" id="admin-setting-bank-name" placeholder="MBBank, Vietcombank..." class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Số Tài Khoản</label>
+              <input type="text" id="admin-setting-bank-acc" placeholder="0988888888" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Tên Chủ Tài Khoản</label>
+              <input type="text" id="admin-setting-bank-holder" placeholder="TRANSLATE SAAS CO" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">SePay Webhook Secret Key</label>
+              <input type="password" id="admin-setting-sepay-secret" placeholder="Secret Key từ Dashboard SePay" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg">
+            </div>
+            <button type="submit" id="btn-save-admin-settings" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm">
+              Lưu Cài Đặt
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="hidden fixed bottom-6 right-6 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-xl z-50 transition-all flex items-center gap-2 animate-fade-in"></div>
 
-  <!-- Main JavaScript Application -->
+  <!-- JavaScript Applications -->
+  <script src="js/auth.js"></script>
+  <script src="js/checkout.js"></script>
+  <script src="js/admin.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
