@@ -1,39 +1,61 @@
 <!DOCTYPE html>
-<html lang="vi" class="scroll-smooth">
+<html lang="vi" class="scroll-smooth" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   
-  <!-- SEO Primary Meta Tags -->
-  <title>AI Document Translator - Nền Tảng Dịch Tài Liệu Khoa Học & Markdown Bằng AI Chuẩn Xác Nhất</title>
-  <meta name="title" content="AI Document Translator - Nền Tảng Dịch Tài Liệu Khoa Học & Markdown Bằng AI Chuẩn Xác Nhất">
-  <meta name="description" content="Dịch thuật tài liệu Markdown, JSON, TXT bảo toàn 100% cấu trúc, công thức toán KaTeX, khối code và bảng biểu bằng AI DeepSeek & OpenAI. Hỗ trợ dịch nền siêu tốc, tự động gửi Email và thanh toán linh hoạt qua SePay VietQR.">
-  <meta name="keywords" content="dịch markdown, dịch tài liệu ai, translate markdown ai, openai translator, deepseek translate, dịch công thức toán katex, dịch json, ai document translation, dịch thuật khoa học, subscription translator, sepay vietqr">
-  <meta name="author" content="AI Document Translator">
+  <!-- Primary Meta Tags -->
+  <title>AI Document Translator - Nền Tảng Dịch Thuật Markdown & Tài Liệu Khoa Học Bằng AI Chuẩn Xác</title>
+  <meta name="title" content="AI Document Translator - Nền Tảng Dịch Thuật Markdown & Tài Liệu Khoa Học Bằng AI Chuẩn Xác">
+  <meta name="description" content="Nền tảng dịch thuật Markdown, JSON, TXT bảo toàn 100% cấu trúc, công thức toán KaTeX ($...$, $$...$$), bảng biểu và khối code bằng AI DeepSeek & OpenAI. Hỗ trợ tiến trình dịch nền tự động, gửi email và thanh toán tự động qua SePay VietQR.">
+  <meta name="keywords" content="dịch markdown, dịch tài liệu ai, translate markdown ai, openai translator, deepseek translate, dịch công thức toán katex, dịch json, ai document translation, dịch thuật khoa học, subscription translator, sepay vietqr, dịch thuật luận văn, latex translator">
+  <meta name="author" content="AI Document Translator Team">
+  <meta name="copyright" content="AI Document Translator">
+  <meta name="application-name" content="AI Document Translator">
+  <meta name="generator" content="AI Document Translator Engine">
+  <meta name="rating" content="General">
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+  <meta name="bingbot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
   <link rel="canonical" href="http://localhost:3000/">
 
-  <!-- Open Graph / Facebook / Zalo -->
+  <!-- Open Graph / Facebook / Zalo / LinkedIn / Telegram / Discord -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="http://localhost:3000/">
+  <meta property="og:site_name" content="AI Document Translator">
   <meta property="og:title" content="AI Document Translator - Dịch Thuật Tài Liệu & Markdown Bằng AI Chuyên Nghiệp">
   <meta property="og:description" content="Dịch tài liệu kỹ thuật, nghiên cứu khoa học, tài liệu lập trình bảo toàn cấu trúc code, công thức toán và bảng biểu chỉ trong vài giây.">
   <meta property="og:image" content="http://localhost:3000/images/og-preview.png">
+  <meta property="og:image:secure_url" content="http://localhost:3000/images/og-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="AI Document Translator - Nền tảng dịch thuật Markdown và tài liệu khoa học">
   <meta property="og:locale" content="vi_VN">
-  <meta property="og:site_name" content="AI Document Translator">
+  <meta property="og:locale:alternate" content="en_US">
 
-  <!-- Twitter / X -->
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="http://localhost:3000/">
-  <meta property="twitter:title" content="AI Document Translator - Dịch Thuật Tài Liệu Bằng AI Chuẩn Xác">
-  <meta property="twitter:description" content="Dịch tài liệu Markdown, JSON, TXT với khả năng bảo toàn cấu trúc hoàn hảo. Đăng ký nhận ngay gói dịch miễn phí!">
-  <meta property="twitter:image" content="http://localhost:3000/images/og-preview.png">
+  <!-- Twitter / X Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="http://localhost:3000/">
+  <meta name="twitter:site" content="@AITranslator">
+  <meta name="twitter:creator" content="@AITranslator">
+  <meta name="twitter:title" content="AI Document Translator - Dịch Thuật Tài Liệu Bằng AI Chuẩn Xác">
+  <meta name="twitter:description" content="Dịch tài liệu Markdown, JSON, TXT với khả năng bảo toàn cấu trúc hoàn hảo. Đăng ký nhận ngay gói dịch miễn phí!">
+  <meta name="twitter:image" content="http://localhost:3000/images/og-preview.png">
+  <meta name="twitter:image:alt" content="AI Document Translator Banner">
 
-  <!-- Microsoft Edge & Bing Webmaster Verification -->
-  <meta name="msapplication-TileColor" content="#2563eb">
+  <!-- Mobile & Browser Theme Tags -->
   <meta name="theme-color" content="#2563eb">
+  <meta name="msapplication-TileColor" content="#2563eb">
+  <meta name="msapplication-navbutton-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="AI Translator">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
 
-  <!-- Schema.org Structured Data (JSON-LD) for Google, Bing & BingAI Copilot -->
+  <!-- Schema.org Structured Data (JSON-LD) for Google, Bing, Yahoo & Copilot -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -58,8 +80,8 @@
         "@type": "SoftwareApplication",
         "@id": "http://localhost:3000/#software",
         "name": "AI Document Translator & Markdown Studio",
-        "operatingSystem": "All Web Browsers, Chrome, Edge, Safari, Firefox",
-        "applicationCategory": "BusinessApplication, DeveloperApplication, EducationalApplication",
+        "applicationCategory": "ProductivityApplication, BusinessApplication, DeveloperApplication",
+        "operatingSystem": "All Web Browsers, Windows, macOS, Linux, iOS, Android",
         "offers": {
           "@type": "Offer",
           "price": "0",

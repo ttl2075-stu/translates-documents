@@ -1,10 +1,63 @@
 <!DOCTYPE html>
-<html lang="vi" class="h-full bg-slate-50 text-slate-800">
+<html lang="vi" class="h-full bg-slate-50 text-slate-800" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Document Translator & Markdown Viewer</title>
-  <meta name="description" content="Nền tảng dịch và xem tài liệu Markdown khoa học chuyên nghiệp bằng AI. Hỗ trợ công thức toán KaTeX, hình ảnh, in ấn chuẩn PDF, mục lục và tùy biến định dạng.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  
+  <!-- Primary Meta Tags -->
+  <title>AI Document Translator Studio - Trình Dịch & Xem Markdown AI Chuyên Nghiệp</title>
+  <meta name="title" content="AI Document Translator Studio - Trình Dịch & Xem Markdown AI Chuyên Nghiệp">
+  <meta name="description" content="Studio dịch thuật tài liệu Markdown, JSON, TXT chuyên sâu bằng AI. Hỗ trợ công thức toán KaTeX ($...$, $$...$$), khối code, in ấn tài liệu chuẩn A4/PDF, trích xuất mục lục TOC, tinh chỉnh câu văn thông minh và quản lý tiến trình dịch nền.">
+  <meta name="keywords" content="dịch markdown, studio dịch tài liệu, markdown translator studio, dịch katex, dịch json, ai translator app, dịch luận văn, dịch bài báo khoa học">
+  <meta name="author" content="AI Document Translator Team">
+  <meta name="application-name" content="AI Document Translator Studio">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+  <link rel="canonical" href="http://localhost:3000/app">
+
+  <!-- Open Graph / Facebook / Zalo / Telegram -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="http://localhost:3000/app">
+  <meta property="og:site_name" content="AI Document Translator Studio">
+  <meta property="og:title" content="AI Document Translator Studio - Dịch & Soát Lỗi Markdown Chuyên Nghiệp">
+  <meta property="og:description" content="Trình dịch thuật AI thông minh bảo toàn tuyệt đối bảng biểu, công thức toán KaTeX và cấu trúc mã nguồn.">
+  <meta property="og:image" content="http://localhost:3000/images/og-preview.png">
+  <meta property="og:image:secure_url" content="http://localhost:3000/images/og-preview.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="AI Document Translator Studio Workspace">
+  <meta property="og:locale" content="vi_VN">
+
+  <!-- Twitter / X Cards -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="http://localhost:3000/app">
+  <meta name="twitter:title" content="AI Document Translator Studio">
+  <meta name="twitter:description" content="Trình dịch thuật và định dạng Markdown thông minh bằng AI.">
+  <meta name="twitter:image" content="http://localhost:3000/images/og-preview.png">
+
+  <!-- Mobile & Browser Theme Tags -->
+  <meta name="theme-color" content="#2563eb">
+  <meta name="msapplication-TileColor" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="AI Translator Studio">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
+
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "AI Document Translator Studio",
+    "url": "http://localhost:3000/app",
+    "applicationCategory": "ProductivityApplication, EducationalApplication",
+    "operatingSystem": "All",
+    "browserRequirements": "Requires JavaScript. Requires HTML5.",
+    "description": "Không gian làm việc dịch thuật tài liệu Markdown và khoa học bằng AI với trình xem trước KaTeX thời gian thực."
+  }
+  </script>
   
   <!-- Google Fonts: Inter, Merriweather & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
