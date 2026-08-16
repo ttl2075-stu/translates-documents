@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - AI Document Translator SaaS</title>
+  <meta name="robots" content="noindex, nofollow">
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="h-full flex flex-col bg-slate-950 font-sans text-slate-200 antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- Top Navbar -->
+  <header class="h-16 bg-slate-900/90 border-b border-slate-800/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-40">
+    <div class="flex items-center gap-4">
+      <a href="/app" class="flex items-center gap-2 text-slate-100 hover:text-blue-400 transition-colors font-bold text-sm">
+        <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-600/20">
+          <i class="fa-solid fa-language text-base"></i>
+        </div>
+        <span>AI Translator</span>
+      </a>
+      <span class="text-slate-600">/</span>
+      <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20 flex items-center gap-1.5">
+        <i class="fa-solid fa-shield-halved text-[11px]"></i> Admin Portal
+      </span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="/app" class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-all shadow-xs">
+        <i class="fa-solid fa-arrow-left text-[11px]"></i>
+        <span>Vào Studio Dịch</span>
+      </a>
+
+      <div class="h-5 w-px bg-slate-800"></div>
+
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 rounded-full bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
+          A
+        </div>
+        <span id="admin-user-name" class="text-xs font-semibold text-slate-200">Quản Trị Viên</span>
+      </div>
+
+      <button onclick="handleAdminLogout()" class="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors" title="Đăng xuất">
+        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Layout -->
+  <div class="flex-1 flex overflow-hidden">
+    <!-- Sidebar Navigation -->
+    <aside class="w-64 bg-slate-900/60 border-r border-slate-800/80 flex flex-col p-4 space-y-1.5 shrink-0">
+      <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1.5">Quản Trị Hệ Thống</div>
+      
+      <button onclick="switchAdminTab('overview')" id="nav-overview" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-xl bg-blue-600 text-white shadow-xs transition-all">
+        <i class="fa-solid fa-chart-pie w-4 text-center"></i>
+        <span>Tổng Quan & Thống Kê</span>
+      </button>
+
+      <button onclick="switchAdminTab('users')" id="nav-users" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all">
+        <i class="fa-solid fa-users w-4 text-center"></i>
+        <span>Quản Lý Người Dùng</span>
+      </button>
+
+      <button onclick="switchAdminTab('plans')" id="nav-plans" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all">
+        <i class="fa-solid fa-layer-group w-4 text-center"></i>
+        <span>Gói Cước & Hạn Mức</span>
+      </button>
+
+      <button onclick="switchAdminTab('transactions')" id="nav-transactions" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all">
+        <i class="fa-solid fa-receipt w-4 text-center"></i>
+        <span>Giao Dịch SePay & Đơn Hàng</span>
+      </button>
+
+      <button onclick="switchAdminTab('settings')" id="nav-settings" class="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all">
+        <i class="fa-solid fa-sliders w-4 text-center"></i>
+        <span>Cấu Hình VietQR & SePay</span>
+      </button>
+
+      <div class="flex-1"></div>
+
+      <div class="p-3 bg-slate-950/60 border border-slate-800/80 rounded-xl text-[11px] text-slate-400 space-y-1">
+        <div class="flex items-center justify-between">
+          <span>Trạng thái CSDL:</span>
+          <span class="text-emerald-400 font-semibold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> MySQL Prisma
+          </span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span>Chuẩn ID:</span>
+          <span class="font-mono text-purple-300">UUIDv7 (RFC 9562)</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content Workspace -->
+    <main class="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-950">
+
+      <!-- SECTION 1: OVERVIEW -->
+      <div id="section-overview" class="space-y-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-xl font-bold text-slate-100">Báo Cáo & Thống Kê Hoạt Động</h1>
+            <p class="text-xs text-slate-400 mt-1">Dữ liệu thời gian thực được đồng bộ tự động</p>
+          </div>
+          <button onclick="loadAdminStats()" class="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-arrows-rotate text-[11px]"></i> Làm mới
+          </button>
+        </div>
+
+        <!-- 4 Metric Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+              <span class="text-xs font-medium uppercase tracking-wider">Tổng Doanh Thu</span>
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-dong-sign"></i>
+              </div>
+            </div>
+            <div id="stat-revenue" class="text-2xl font-bold font-mono text-emerald-400">0 ₫</div>
+            <div class="text-[11px] text-slate-500 mt-1">Đơn thanh toán thành công</div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+              <span class="text-xs font-medium uppercase tracking-wider">Tổng Người Dùng</span>
+              <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-users"></i>
+              </div>
+            </div>
+            <div id="stat-users" class="text-2xl font-bold font-mono text-blue-400">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Tài khoản đăng ký hệ thống</div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+              <span class="text-xs font-medium uppercase tracking-wider">Thuê Bao Trả Phí</span>
+              <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-crown"></i>
+              </div>
+            </div>
+            <div id="stat-subscribers" class="text-2xl font-bold font-mono text-purple-400">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Gói Pro & Enterprise đang kích hoạt</div>
+          </div>
+
+          <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-5 shadow-xs">
+            <div class="flex items-center justify-between text-slate-400 mb-3">
+              <span class="text-xs font-medium uppercase tracking-wider">Tài Liệu Dịch</span>
+              <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center text-sm">
+                <i class="fa-solid fa-file-lines"></i>
+              </div>
+            </div>
+            <div id="stat-jobs" class="text-2xl font-bold font-mono text-amber-400">0</div>
+            <div class="text-[11px] text-slate-500 mt-1">Lượt tác vụ chạy nền</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: USERS -->
+      <div id="section-users" class="hidden space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-xl font-bold text-slate-100">Quản Lý Người Dùng & Gói Cước</h1>
+            <p class="text-xs text-slate-400 mt-1">Xem, phân quyền, nâng cấp và khóa tài khoản</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="relative w-72">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+              <input type="text" id="input-search-users" oninput="debounceUserSearch()" placeholder="Tìm kiếm theo email hoặc họ tên..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-900 border border-slate-800 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-hidden">
+            </div>
+            <button onclick="loadAdminUsers()" class="px-3 py-1.5 text-xs font-semibold text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-lg">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xs">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-950/60 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                <tr>
+                  <th class="px-5 py-3">Người dùng</th>
+                  <th class="px-4 py-3">Vai trò</th>
+                  <th class="px-4 py-3">Gói cước</th>
+                  <th class="px-4 py-3">Ký tự đã dùng</th>
+                  <th class="px-4 py-3">Hạn gói</th>
+                  <th class="px-4 py-3">Trạng thái</th>
+                  <th class="px-5 py-3 text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="table-users-body" class="divide-y divide-slate-800/60">
+                <tr>
+                  <td colspan="7" class="px-5 py-8 text-center text-slate-500">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Đang tải danh sách người dùng...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: PLANS -->
+      <div id="section-plans" class="hidden space-y-6">
+        <div>
+          <h1 class="text-xl font-bold text-slate-100">Quản Lý Gói Cước Subscription</h1>
+          <p class="text-xs text-slate-400 mt-1">Chỉnh sửa giá tiền VNĐ, hạn mức ký tự và tính năng cho từng gói</p>
+        </div>
+
+        <div id="plans-container" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- SECTION 4: TRANSACTIONS -->
+      <div id="section-transactions" class="hidden space-y-6">
+        <div>
+          <h1 class="text-xl font-bold text-slate-100">Nhật Ký Giao Dịch SePay & Đơn Hàng</h1>
+          <p class="text-xs text-slate-400 mt-1">Lịch sử nhận webhook thời gian thực từ cổng thanh toán ngân hàng</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-6">
+          <div class="bg-slate-900/80 border border-slate-800/80 rounded-2xl overflow-hidden shadow-xs">
+            <div class="px-5 py-3.5 bg-slate-950/60 border-b border-slate-800 font-bold text-xs text-slate-200">
+              Danh Sách Webhook Gần Nhất (SePay Logs)
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950/40 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th class="px-4 py-2.5">ID SePay</th>
+                    <th class="px-4 py-2.5">Thời gian</th>
+                    <th class="px-4 py-2.5">Cổng / STK</th>
+                    <th class="px-4 py-2.5">Số tiền (VNĐ)</th>
+                    <th class="px-4 py-2.5">Mã đơn / Nội dung</th>
+                  </tr>
+                </thead>
+                <tbody id="table-transactions-body" class="divide-y divide-slate-800/60 font-mono text-[11px]">
+                  <tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">Đang tải lịch sử giao dịch...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 5: SETTINGS -->
+      <div id="section-settings" class="hidden space-y-6">
+        <div>
+          <h1 class="text-xl font-bold text-slate-100">Cấu Hình Ngân Hàng VietQR & SePay</h1>
+          <p class="text-xs text-slate-400 mt-1">Thông tin thụ hưởng hiển thị trên mã QR động khi người dùng nâng cấp gói</p>
+        </div>
+
+        <form id="admin-settings-form" onsubmit="handleSaveSettings(event)" class="max-w-2xl bg-slate-900/80 border border-slate-800/80 rounded-2xl p-6 space-y-4 shadow-xs">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">Tên Ngân Hàng (VietQR code)</label>
+              <input type="text" id="setting-bank-name" placeholder="MBBank, VCB, TCB..." class="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-hidden">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">Số Tài Khoản Ngân Hàng</label>
+              <input type="text" id="setting-bank-account" placeholder="0988888888" class="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-hidden">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">Tên Chủ Tài Khoản (Không dấu)</label>
+            <input type="text" id="setting-bank-account-name" placeholder="NGUYEN VAN A" class="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-hidden uppercase">
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1">SePay Webhook Secret Key</label>
+            <input type="password" id="setting-sepay-secret" placeholder="••••••••••••••••" class="w-full px-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 focus:border-blue-500 focus:outline-hidden font-mono">
+            <p class="text-[11px] text-slate-500 mt-1">Dùng để xác thực chữ ký HMAC-SHA256 bảo vệ webhook chống giả mạo.</p>
+          </div>
+
+          <div class="pt-2 flex justify-end">
+            <button type="submit" id="btn-save-settings" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all">
+              Lưu Cấu Hình
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/dialog.js"></script>
+  <script src="js/admin-page.js"></script>
+</body>
+</html>
