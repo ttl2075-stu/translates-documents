@@ -33,8 +33,8 @@ export class MarkdownAdapter implements DocumentAdapter {
       return createMask(match, 'frontmatter');
     });
 
-    // 2. Mask 4-backtick or 3-backtick Fenced Code Blocks & Tildes (handles nested codeblocks)
-    processed = processed.replace(/(````[\s\S]*?````|```[\s\S]*?```|~~~~[\s\S]*?~~~~|~~~[\s\S]*?~~~)/g, (match) => {
+    // 2. Mask Fenced Code Blocks (``` or ~~~ with optional individual backslashes or indentation)
+    processed = processed.replace(/(?:(?:\\?`){3,}[\s\S]*?(?:\\?`){3,}|(?:\\?~){3,}[\s\S]*?(?:\\?~){3,})/g, (match) => {
       return createMask(match, 'fence_code');
     });
 
@@ -93,8 +93,11 @@ export class MarkdownAdapter implements DocumentAdapter {
   async unmaskAndSerialize(translatedChunks: ChunkItem[], state: any): Promise<string> {
     const maskRecords: MaskRecord[] = state?.maskRecords || [];
 
-    // Reconstruct full text from translated chunks
-    let fullTranslated = translatedChunks.map((c) => c.translatedText ?? c.maskedText).join('\n\n');
+    // Reconstruct full text from translated chunks with clean paragraph separation
+    let fullTranslated = translatedChunks
+      .map((c) => (c.translatedText ?? c.maskedText).trim())
+      .filter((t) => t.length > 0)
+      .join('\n\n');
 
     // Restore masks in reverse order to prevent collision
     for (let i = maskRecords.length - 1; i >= 0; i--) {
