@@ -134,6 +134,8 @@ app.post('/api/translate', async (req, res) => {
   }
 });
 
+import { defaultFormatReviewer } from '../core/format-reviewer.js';
+
 // 7.1. Targeted Text Refinement / Prompt Edit API
 app.post('/api/refine', async (req, res) => {
   try {
@@ -163,6 +165,33 @@ app.post('/api/refine', async (req, res) => {
     res.json({
       success: true,
       refinedText,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 7.2. Standalone Format Reviewer & Linter API
+app.post('/api/review-format', async (req, res) => {
+  try {
+    const { content, options, useAIAgent = true, apiOverride } = req.body;
+
+    if (!content || typeof content !== 'string' || content.trim().length === 0) {
+      return res.status(400).json({ error: 'Nội dung tài liệu không được để trống.' });
+    }
+
+    const result = await defaultFormatReviewer.reviewAndFixFormatting(
+      content,
+      options || { sourceLang: 'auto', targetLang: 'vi', style: 'technical' },
+      Boolean(useAIAgent),
+      apiOverride
+    );
+
+    res.json({
+      success: true,
+      formattedText: result.text,
+      fixed: result.fixed,
+      message: result.message,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

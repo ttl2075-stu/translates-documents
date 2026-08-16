@@ -3,6 +3,7 @@ import { defaultOpenAIService, OpenAIService, TokenCallback } from './openai-ser
 import { ChunkItem, ProgressCallback, TranslationOptions } from './interfaces.js';
 import { config } from '../config.js';
 import { defaultTranslationCache } from './cache.js';
+import { defaultFormatReviewer, FormatReviewerService } from './format-reviewer.js';
 
 export interface TranslationExecutionOptions {
   filename?: string;
@@ -35,7 +36,8 @@ export interface TranslationExecutionResult {
 export class TranslationEngine {
   constructor(
     private registry = defaultRegistry,
-    private openAIService: OpenAIService = defaultOpenAIService
+    private openAIService: OpenAIService = defaultOpenAIService,
+    private formatReviewer: FormatReviewerService = defaultFormatReviewer
   ) {}
 
   async translateDocument(
@@ -153,7 +155,32 @@ export class TranslationEngine {
     });
 
     const sortedChunks = translatedChunks.slice().sort((a, b) => a.id - b.id);
-    const translatedContent = await adapter.unmaskAndSerialize(sortedChunks, parseResult.state);
+    const rawTranslatedContent = await adapter.unmaskAndSerialize(sortedChunks, parseResult.state);
+
+    // 5. Post-translation Format Review & Standardization Agent
+    let translatedContent = rawTranslatedContent;
+    if (options.enableFormatReview !== false) {
+      onProgress?.({
+        currentChunk: totalChunks,
+        totalChunks,
+        percent: 98,
+        status: 'reviewing',
+        message: 'Agent đang rà soát và chuẩn hóa định dạng tài liệu...',
+      });
+
+      try {
+        const reviewResult = await this.formatReviewer.reviewAndFixFormatting(
+          rawTranslatedContent,
+          options,
+          true,
+          apiOverride
+        );
+        translatedContent = reviewResult.text;
+      } catch (_) {
+        translatedContent = rawTranslatedContent;
+      }
+    }
+
     const durationMs = Date.now() - startTime;
     const cacheStats = defaultTranslationCache.getStats();
 
@@ -162,7 +189,7 @@ export class TranslationEngine {
       totalChunks,
       percent: 100,
       status: 'completed',
-      message: `Hoàn tất dịch trong ${(durationMs / 1000).toFixed(1)}s! (${cachedChunks}/${totalChunks} từ cache)`,
+      message: `Hoàn tất dịch & rà soát định dạng trong ${(durationMs / 1000).toFixed(1)}s! (${cachedChunks}/${totalChunks} từ cache)`,
     });
 
     return {

@@ -191,7 +191,15 @@
             <input type="checkbox" id="chk-run-background" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
             <span class="flex items-center gap-1">
               <i class="fa-solid fa-server text-blue-600 text-[11px]"></i>
-              <span>Chạy nền (Treo máy server khi đóng tab)</span>
+              <span>Chạy nền (Treo máy)</span>
+            </span>
+          </label>
+
+          <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 select-none" title="Tự động chạy Agent rà soát và chuẩn hóa cấu trúc định dạng bảng, công thức toán, code blocks sau khi dịch">
+            <input type="checkbox" id="chk-enable-format-review" class="w-3.5 h-3.5 text-purple-600 rounded border-slate-300 focus:ring-purple-500" checked>
+            <span class="flex items-center gap-1">
+              <i class="fa-solid fa-wand-magic-sparkles text-purple-600 text-[11px]"></i>
+              <span>Agent rà soát định dạng</span>
             </span>
           </label>
 
@@ -199,7 +207,7 @@
             <input type="checkbox" id="chk-enable-email" class="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
             <span class="flex items-center gap-1">
               <i class="fa-regular fa-paper-plane text-emerald-600 text-[11px]"></i>
-              <span>Tự động gửi file về Email khi hoàn tất</span>
+              <span>Gửi mail khi xong</span>
             </span>
           </label>
         </div>
@@ -281,6 +289,12 @@
           <button id="btn-open-refine-modal" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-md transition-all shadow-xs" title="Bôi chọn nội dung cần sửa trong tab Chỉnh sửa rồi bấm nút này (Ctrl+K)">
             <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
             <span>Sửa bằng AI</span>
+          </button>
+
+          <!-- Standalone Format Review / Linter Button -->
+          <button id="btn-review-format" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-md transition-all shadow-xs" title="Chạy Agent rà soát và tự động chuẩn hóa cấu trúc bảng, công thức toán, khối code">
+            <i class="fa-solid fa-spell-check text-purple-600"></i>
+            <span id="lbl-review-format">Rà soát định dạng</span>
           </button>
         </div>
         

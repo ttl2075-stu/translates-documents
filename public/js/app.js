@@ -179,9 +179,13 @@ const jobsLoadingState = document.getElementById('jobs-loading-state');
 const activeJobsBadge = document.getElementById('active-jobs-badge');
 
 const chkRunBackground = document.getElementById('chk-run-background');
+const chkEnableFormatReview = document.getElementById('chk-enable-format-review');
 const chkEnableEmail = document.getElementById('chk-enable-email');
 const inputRecipientEmail = document.getElementById('input-recipient-email');
 const emailRecipientWrapper = document.getElementById('email-recipient-wrapper');
+
+const btnReviewFormat = document.getElementById('btn-review-format');
+const lblReviewFormat = document.getElementById('lbl-review-format');
 
 let jobsRefreshInterval = null;
 
@@ -241,6 +245,10 @@ function setupEventListeners() {
   btnCloseRefineModal.addEventListener('click', closeRefineModal);
   btnCancelRefine.addEventListener('click', closeRefineModal);
   btnExecuteRefine.addEventListener('click', executeRefine);
+
+  if (btnReviewFormat) {
+    btnReviewFormat.addEventListener('click', handleFormatReview);
+  }
 
   // Quick Preset Prompt Chips
   document.querySelectorAll('.btn-refine-preset').forEach((btn) => {
@@ -649,6 +657,7 @@ async function startTranslation() {
       targetLang: selectTargetLang.value,
       style: selectStyle.value,
       enableCache: true,
+      enableFormatReview: chkEnableFormatReview ? chkEnableFormatReview.checked : true,
       customGlossary: Object.keys(glossary).length > 0 ? glossary : undefined,
       customInstructions: customInstructions.length > 0 ? customInstructions : undefined,
     },
@@ -1323,6 +1332,53 @@ async function executeRefine() {
     btnExecuteRefine.disabled = false;
     lblExecuteRefine.textContent = 'Áp dụng chỉnh sửa';
     btnExecuteRefine.classList.remove('opacity-75', 'cursor-not-allowed');
+  }
+}
+
+async function handleFormatReview() {
+  const content = targetEditor.value;
+  if (!content || content.trim().length === 0) {
+    showToast('Chưa có nội dung bản dịch để rà soát định dạng!', true);
+    return;
+  }
+
+  btnReviewFormat.disabled = true;
+  lblReviewFormat.textContent = 'Đang rà soát...';
+  btnReviewFormat.classList.add('opacity-75', 'cursor-not-allowed');
+
+  try {
+    const res = await fetch('/api/review-format', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content,
+        options: {
+          sourceLang: selectSourceLang.value,
+          targetLang: selectTargetLang.value,
+          style: selectStyle.value,
+        },
+        useAIAgent: true,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Lỗi khi gọi API rà soát định dạng.');
+    }
+
+    currentTranslatedText = data.formattedText;
+    targetEditor.value = currentTranslatedText;
+    updateTargetStats(currentTranslatedText.length, 'Đã chuẩn hóa định dạng ✨');
+    renderTargetMarkdown(currentTranslatedText, true);
+    renderDiffView(sourceEditor.value, currentTranslatedText);
+
+    showToast(`✨ ${data.message || 'Đã chuẩn hóa và sửa lỗi định dạng thành công!'}`);
+  } catch (err) {
+    showToast('Lỗi rà soát định dạng: ' + err.message, true);
+  } finally {
+    btnReviewFormat.disabled = false;
+    lblReviewFormat.textContent = 'Rà soát định dạng';
+    btnReviewFormat.classList.remove('opacity-75', 'cursor-not-allowed');
   }
 }
 

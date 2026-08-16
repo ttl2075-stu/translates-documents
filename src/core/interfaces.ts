@@ -12,6 +12,7 @@ export interface TranslationOptions {
   style: TranslationStyle;
   mode?: 'parallel' | 'contextual_session'; // 'parallel': siêu nhanh; 'contextual_session': giữ mạch hội thoại & nhất quán ngữ cảnh
   enableCache?: boolean;       // Bật/tắt cache thông minh
+  enableFormatReview?: boolean; // Bật/tắt agent rà soát và chuẩn hóa định dạng sau dịch
   customGlossary?: Record<string, string>; // e.g. { "hook": "hook", "state": "trạng thái" }
   customInstructions?: string; // e.g. "Do not translate brand names"
   model?: string;
@@ -53,7 +54,7 @@ export interface TranslationProgress {
   totalChunks: number;
   percent: number;
   chunkPreview?: string;
-  status: 'parsing' | 'translating' | 'assembling' | 'completed' | 'error';
+  status: 'parsing' | 'translating' | 'assembling' | 'reviewing' | 'completed' | 'error';
   message?: string;
 }
 
