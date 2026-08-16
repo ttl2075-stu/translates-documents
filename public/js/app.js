@@ -183,21 +183,6 @@ const chkEnableEmail = document.getElementById('chk-enable-email');
 const inputRecipientEmail = document.getElementById('input-recipient-email');
 const emailRecipientWrapper = document.getElementById('email-recipient-wrapper');
 
-const btnOpenSmtpModal = document.getElementById('btn-open-smtp-modal');
-const btnCloseSmtpModal = document.getElementById('btn-close-smtp-modal');
-const btnCancelSmtp = document.getElementById('btn-cancel-smtp');
-const btnSaveSmtp = document.getElementById('btn-save-smtp');
-const btnTestSmtp = document.getElementById('btn-test-smtp');
-const smtpModal = document.getElementById('smtp-modal');
-const formSmtpSettings = document.getElementById('form-smtp-settings');
-const smtpHostInput = document.getElementById('smtp-host');
-const smtpPortInput = document.getElementById('smtp-port');
-const smtpSecureInput = document.getElementById('smtp-secure');
-const smtpUserInput = document.getElementById('smtp-user');
-const smtpPassInput = document.getElementById('smtp-pass');
-const smtpFromInput = document.getElementById('smtp-from');
-const smtpTestResult = document.getElementById('smtp-test-result');
-
 let jobsRefreshInterval = null;
 
 // -------------------------------------------------------------
@@ -206,7 +191,7 @@ let jobsRefreshInterval = null;
 document.addEventListener('DOMContentLoaded', async () => {
   loadTypographySettings();
   setupEventListeners();
-  setupJobsAndSmtpListeners();
+  setupJobsListeners();
   await refreshCacheStats();
   await refreshActiveJobsCount();
   checkActiveJobOnLoad();
@@ -1335,10 +1320,10 @@ async function executeRefine() {
 }
 
 // -------------------------------------------------------------
-// Background Jobs Management & SMTP Functions
+// Background Jobs Management
 // -------------------------------------------------------------
 
-function setupJobsAndSmtpListeners() {
+function setupJobsListeners() {
   // Toggle email recipient input
   if (chkEnableEmail) {
     chkEnableEmail.addEventListener('change', () => {
@@ -1356,13 +1341,6 @@ function setupJobsAndSmtpListeners() {
   if (btnCloseJobsModal) btnCloseJobsModal.addEventListener('click', closeJobsModal);
   if (btnCloseJobsModalFooter) btnCloseJobsModalFooter.addEventListener('click', closeJobsModal);
   if (btnRefreshJobs) btnRefreshJobs.addEventListener('click', loadJobsList);
-
-  // SMTP Modal
-  if (btnOpenSmtpModal) btnOpenSmtpModal.addEventListener('click', openSmtpModal);
-  if (btnCloseSmtpModal) btnCloseSmtpModal.addEventListener('click', closeSmtpModal);
-  if (btnCancelSmtp) btnCancelSmtp.addEventListener('click', closeSmtpModal);
-  if (btnSaveSmtp) btnSaveSmtp.addEventListener('click', saveSmtpConfig);
-  if (btnTestSmtp) btnTestSmtp.addEventListener('click', testSmtpConnection);
 }
 
 async function refreshActiveJobsCount() {
@@ -1594,112 +1572,6 @@ async function loadJobIntoEditor(jobId) {
     showToast(`✅ Đã nạp thành công bản dịch của "${job.filename}"!`);
   } catch (err) {
     showToast('Lỗi khi nạp bản dịch: ' + err.message, true);
-  }
-}
-
-// -------------------------------------------------------------
-// SMTP Settings
-// -------------------------------------------------------------
-
-async function openSmtpModal() {
-  smtpModal.classList.remove('hidden');
-  smtpTestResult.classList.add('hidden');
-  await loadSmtpConfig();
-}
-
-function closeSmtpModal() {
-  smtpModal.classList.add('hidden');
-}
-
-async function loadSmtpConfig() {
-  try {
-    const res = await fetch('/api/email/config');
-    const data = await res.json();
-    smtpHostInput.value = data.smtpHost || '';
-    smtpPortInput.value = data.smtpPort || 587;
-    smtpSecureInput.checked = Boolean(data.smtpSecure);
-    smtpUserInput.value = data.smtpUser || '';
-    smtpPassInput.value = '';
-    smtpFromInput.value = data.smtpFrom || 'AI Document Translator <noreply@domain.com>';
-  } catch (err) {
-    showToast('Không thể tải cấu hình Mail Server', true);
-  }
-}
-
-async function saveSmtpConfig() {
-  btnSaveSmtp.disabled = true;
-  btnSaveSmtp.textContent = 'Đang lưu...';
-
-  try {
-    const payload = {
-      smtpHost: smtpHostInput.value.trim(),
-      smtpPort: parseInt(smtpPortInput.value, 10) || 587,
-      smtpSecure: smtpSecureInput.checked,
-      smtpUser: smtpUserInput.value.trim(),
-      smtpFrom: smtpFromInput.value.trim(),
-    };
-
-    if (smtpPassInput.value.trim().length > 0) {
-      payload.smtpPass = smtpPassInput.value.trim();
-    }
-
-    const res = await fetch('/api/email/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-    if (res.ok && data.success) {
-      showToast('✅ Đã lưu cấu hình Mail Server thành công!');
-      closeSmtpModal();
-    } else {
-      showToast(data.message || 'Lỗi khi lưu cấu hình Mail Server', true);
-    }
-  } catch (err) {
-    showToast('Lỗi: ' + err.message, true);
-  } finally {
-    btnSaveSmtp.disabled = false;
-    btnSaveSmtp.textContent = 'Lưu cấu hình';
-  }
-}
-
-async function testSmtpConnection() {
-  btnTestSmtp.disabled = true;
-  btnTestSmtp.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang kiểm tra...';
-  smtpTestResult.className = 'hidden p-2.5 rounded-lg text-xs';
-
-  try {
-    const payload = {
-      smtpHost: smtpHostInput.value.trim(),
-      smtpPort: parseInt(smtpPortInput.value, 10) || 587,
-      smtpSecure: smtpSecureInput.checked,
-      smtpUser: smtpUserInput.value.trim(),
-      smtpPass: smtpPassInput.value.trim(),
-    };
-
-    const res = await fetch('/api/email/test', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    const data = await res.json();
-    smtpTestResult.classList.remove('hidden');
-    if (data.success) {
-      smtpTestResult.className = 'p-2.5 rounded-lg text-xs bg-emerald-50 text-emerald-800 border border-emerald-200';
-      smtpTestResult.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> ${data.message}`;
-    } else {
-      smtpTestResult.className = 'p-2.5 rounded-lg text-xs bg-red-50 text-red-800 border border-red-200';
-      smtpTestResult.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> ${data.message}`;
-    }
-  } catch (err) {
-    smtpTestResult.classList.remove('hidden');
-    smtpTestResult.className = 'p-2.5 rounded-lg text-xs bg-red-50 text-red-800 border border-red-200';
-    smtpTestResult.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> Lỗi kết nối: ${err.message}`;
-  } finally {
-    btnTestSmtp.disabled = false;
-    btnTestSmtp.innerHTML = '<i class="fa-solid fa-paper-plane text-emerald-600 text-[11px]"></i> <span>Kiểm tra kết nối</span>';
   }
 }
 

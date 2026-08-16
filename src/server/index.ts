@@ -400,53 +400,13 @@ app.get('/api/jobs/:id/download', (req, res) => {
   res.send(job.translatedContent);
 });
 
-// 10. SMTP Mail Server Endpoints
-
-// 10.1. Get Email Configuration
-app.get('/api/email/config', (_req, res) => {
+// 10. SMTP Mail Server Status (Configured purely via .env)
+app.get('/api/email/status', (_req, res) => {
   res.json({
-    smtpHost: config.smtpHost,
-    smtpPort: config.smtpPort,
-    smtpSecure: config.smtpSecure,
-    smtpUser: config.smtpUser,
+    configured: Boolean(config.smtpHost && config.smtpHost.trim().length > 0),
+    smtpHost: config.smtpHost ? config.smtpHost : undefined,
     smtpFrom: config.smtpFrom,
-    hasPassword: Boolean(config.smtpPass && config.smtpPass.length > 0),
   });
-});
-
-// 10.2. Update Email Configuration
-app.post('/api/email/config', (req, res) => {
-  try {
-    const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom } = req.body;
-    updateRuntimeConfig({
-      smtpHost,
-      smtpPort: smtpPort ? parseInt(smtpPort, 10) : undefined,
-      smtpSecure: smtpSecure !== undefined ? Boolean(smtpSecure) : undefined,
-      smtpUser,
-      smtpPass: smtpPass !== undefined ? smtpPass : undefined,
-      smtpFrom,
-    });
-
-    res.json({
-      success: true,
-      message: 'Cập nhật cấu hình Mail Server thành công!',
-    });
-  } catch (error: any) {
-    res.status(400).json({ success: false, message: error.message });
-  }
-});
-
-// 10.3. Test SMTP Connection
-app.post('/api/email/test', async (req, res) => {
-  const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass } = req.body;
-  const result = await defaultMailerService.testConnection({
-    host: smtpHost,
-    port: smtpPort ? parseInt(smtpPort, 10) : undefined,
-    secure: smtpSecure !== undefined ? Boolean(smtpSecure) : undefined,
-    user: smtpUser,
-    pass: smtpPass,
-  });
-  res.json(result);
 });
 
 // Global Error Handler
