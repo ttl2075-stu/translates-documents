@@ -96,11 +96,50 @@ export class MarkdownAdapter implements DocumentAdapter {
     // Ensure chunks are in strict sequential order 0..N
     const sortedChunks = translatedChunks.slice().sort((a, b) => a.id - b.id);
 
-    // Reconstruct full text from translated chunks with clean paragraph separation
-    let fullTranslated = sortedChunks
-      .map((c) => (c.translatedText ?? c.maskedText).trim())
-      .filter((t) => t.length > 0)
-      .join('\n\n');
+    // Reconstruct full text:
+    // - Sub-chunks belonging to the SAME parent block are joined seamlessly into 1 paragraph (using ' ' or single \n)
+    // - Distinct blocks and accumulated batches are separated by \n\n
+    let fullTranslated = '';
+
+    for (let i = 0; i < sortedChunks.length; i++) {
+      const chunk = sortedChunks[i];
+      const text = (chunk.translatedText ?? chunk.maskedText).trim();
+      if (!text) continue;
+
+      if (fullTranslated.length === 0) {
+        fullTranslated = text;
+      } else {
+        const prevChunk = sortedChunks[i - 1];
+        const isSameBlockSubChunk =
+          Boolean(prevChunk?.metadata?.isSubChunk) &&
+          Boolean(chunk.metadata?.isSubChunk) &&
+          prevChunk?.metadata?.blockId !== undefined &&
+          prevChunk.metadata.blockId === chunk.metadata?.blockId;
+
+        if (isSameBlockSubChunk) {
+          const blockType = chunk.metadata?.blockType;
+          if (blockType === 'table') {
+            // Deduplicate sub-table repeated header rows and join data rows with single \n
+            const lines = text.split(/\r?\n/);
+            const sepIdx = lines.findIndex((l) => /^\s*\|?\s*:?-+:?\s*\|/.test(l));
+            const dataLines = sepIdx !== -1 ? lines.slice(sepIdx + 1) : lines;
+            fullTranslated += '\n' + dataLines.join('\n');
+          } else if (blockType === 'list') {
+            fullTranslated += '\n' + text;
+          } else {
+            // Paragraph: join with space into 1 single continuous paragraph (NOT 2 paragraphs!)
+            if (fullTranslated.endsWith('\n')) {
+              fullTranslated += text;
+            } else {
+              fullTranslated += ' ' + text;
+            }
+          }
+        } else {
+          // Different blocks: separate with \n\n
+          fullTranslated += '\n\n' + text;
+        }
+      }
+    }
 
     // Restore masks in reverse order to prevent collision
     for (let i = maskRecords.length - 1; i >= 0; i--) {
@@ -344,59 +383,119 @@ export class MarkdownAdapter implements DocumentAdapter {
 
   private splitIntoSemanticChunks(text: string, maxChunkSize: number): ChunkItem[] {
     const rawBlocks = this.extractMarkdownBlocks(text);
-    const normalizedBlocks: string[] = [];
+    const pieces: {
+      text: string;
+      blockId: number;
+      blockType: 'paragraph' | 'heading' | 'table' | 'list' | 'code' | 'blockquote' | 'html';
+      isSubPiece: boolean;
+      subPieceIndex: number;
+      totalSubPieces: number;
+    }[] = [];
 
-    // 1. Expand any single block that exceeds maxChunkSize into clean structural sub-blocks
-    for (const block of rawBlocks) {
-      if (block.length <= maxChunkSize) {
-        normalizedBlocks.push(block);
+    // 1. Identify block type and expand any single block that exceeds maxChunkSize into clean sub-pieces
+    rawBlocks.forEach((block, blockId) => {
+      const trimmed = block.trim();
+      if (!trimmed) return;
+
+      const isTable = trimmed.includes('\n') && (trimmed.startsWith('|') || trimmed.includes('|---') || /\|.*\|/.test(trimmed));
+      const isList = /^\s*(?:[-*+]|\d+[\.\)])\s+/m.test(trimmed);
+      const isHeading = /^#{1,6}\s+/.test(trimmed);
+      const isCode = /^(?:`{3,}|~{3,})/.test(trimmed);
+      const isBlockquote = /^>\s+/.test(trimmed);
+
+      let blockType: 'paragraph' | 'heading' | 'table' | 'list' | 'code' | 'blockquote' | 'html' = 'paragraph';
+      if (isTable) blockType = 'table';
+      else if (isList) blockType = 'list';
+      else if (isHeading) blockType = 'heading';
+      else if (isCode) blockType = 'code';
+      else if (isBlockquote) blockType = 'blockquote';
+
+      if (trimmed.length <= maxChunkSize) {
+        pieces.push({
+          text: trimmed,
+          blockId,
+          blockType,
+          isSubPiece: false,
+          subPieceIndex: 0,
+          totalSubPieces: 1,
+        });
       } else {
-        const isTable = block.includes('\n') && (block.startsWith('|') || block.includes('|---') || /\|.*\|/.test(block));
-        const isList = /^\s*(?:[-*+]|\d+[\.\)])\s+/m.test(block);
-
+        // Block is too long -> split into sub-pieces
+        let subTexts: string[] = [];
         if (isTable) {
-          normalizedBlocks.push(...this.splitLargeTable(block, maxChunkSize));
+          subTexts = this.splitLargeTable(trimmed, maxChunkSize);
         } else if (isList) {
-          normalizedBlocks.push(...this.splitLargeList(block, maxChunkSize));
+          subTexts = this.splitLargeList(trimmed, maxChunkSize);
         } else {
-          normalizedBlocks.push(...this.splitLargeParagraph(block, maxChunkSize));
+          subTexts = this.splitLargeParagraph(trimmed, maxChunkSize);
         }
+
+        subTexts.forEach((subText, subIdx) => {
+          pieces.push({
+            text: subText.trim(),
+            blockId,
+            blockType,
+            isSubPiece: true,
+            subPieceIndex: subIdx,
+            totalSubPieces: subTexts.length,
+          });
+        });
       }
-    }
+    });
 
     // 2. Greedily accumulate multiple paragraphs/blocks into batches up to maxChunkSize
-    // while strictly respecting block boundaries (\n\n)
+    // while tracking sub-piece metadata so sub-chunks can be rejoined seamlessly into 1 paragraph
     const chunks: ChunkItem[] = [];
-    let currentBatch: string[] = [];
+    let currentBatchTexts: string[] = [];
     let currentBatchLen = 0;
     let chunkId = 0;
 
     const flushBatch = () => {
-      if (currentBatch.length > 0) {
-        const joined = currentBatch.join('\n\n');
+      if (currentBatchTexts.length > 0) {
+        const joined = currentBatchTexts.join('\n\n');
         chunks.push({
           id: chunkId++,
           originalText: joined,
           maskedText: joined,
+          metadata: {
+            isSubChunk: false,
+          },
         });
-        currentBatch = [];
+        currentBatchTexts = [];
         currentBatchLen = 0;
       }
     };
 
-    for (const block of normalizedBlocks) {
-      const trimmed = block.trim();
-      if (!trimmed) continue;
-
-      const addedLen = currentBatch.length > 0 ? trimmed.length + 2 : trimmed.length;
-
-      // If adding this block exceeds maxChunkSize and currentBatch is not empty, flush current batch
-      if (currentBatch.length > 0 && (currentBatchLen + addedLen) > maxChunkSize) {
+    for (const piece of pieces) {
+      if (piece.isSubPiece) {
+        // If a piece is a sub-piece of an oversized block:
+        // Flush any accumulated regular blocks before it
         flushBatch();
-      }
 
-      currentBatch.push(trimmed);
-      currentBatchLen += (currentBatch.length > 1 ? 2 : 0) + trimmed.length;
+        // This sub-piece becomes its own ChunkItem, with metadata recording its parent blockId
+        chunks.push({
+          id: chunkId++,
+          originalText: piece.text,
+          maskedText: piece.text,
+          metadata: {
+            blockId: piece.blockId,
+            blockType: piece.blockType,
+            isSubChunk: true,
+            subChunkIndex: piece.subPieceIndex,
+            totalSubChunks: piece.totalSubPieces,
+          },
+        });
+      } else {
+        // Regular small block: accumulate up to maxChunkSize
+        const addedLen = currentBatchTexts.length > 0 ? piece.text.length + 2 : piece.text.length;
+
+        if (currentBatchTexts.length > 0 && (currentBatchLen + addedLen) > maxChunkSize) {
+          flushBatch();
+        }
+
+        currentBatchTexts.push(piece.text);
+        currentBatchLen += (currentBatchTexts.length > 1 ? 2 : 0) + piece.text.length;
+      }
     }
 
     flushBatch();

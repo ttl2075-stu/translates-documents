@@ -9,32 +9,55 @@ export class TextAdapter implements DocumentAdapter {
 
   async parseAndMask(content: string, _options: TranslationOptions): Promise<DocumentParseResult> {
     const rawParagraphs = content.split(/\n\n+/);
-    const normalizedBlocks: string[] = [];
+    const pieces: {
+      text: string;
+      blockId: number;
+      isSubPiece: boolean;
+      subPieceIndex: number;
+      totalSubPieces: number;
+    }[] = [];
 
-    for (const para of rawParagraphs) {
+    rawParagraphs.forEach((para, blockId) => {
       const trimmed = para.trim();
-      if (!trimmed) continue;
+      if (!trimmed) return;
 
       if (trimmed.length <= config.maxChunkSize) {
-        normalizedBlocks.push(trimmed);
+        pieces.push({
+          text: trimmed,
+          blockId,
+          isSubPiece: false,
+          subPieceIndex: 0,
+          totalSubPieces: 1,
+        });
       } else {
         // Split long paragraph at sentence boundaries
         const sentenceRegex = /([^.!?。！？\n]+[.!?。！？\n]+(?:\s+|$)|[^\n]+\n*)/g;
         const matches = trimmed.match(sentenceRegex) || [trimmed];
+        const subParas: string[] = [];
         let currentSub = '';
 
         for (const sentence of matches) {
           if (currentSub.length > 0 && (currentSub.length + sentence.length) > config.maxChunkSize) {
-            normalizedBlocks.push(currentSub.trim());
+            subParas.push(currentSub.trim());
             currentSub = '';
           }
           currentSub += (currentSub.length > 0 ? ' ' : '') + sentence.trim();
         }
         if (currentSub.trim().length > 0) {
-          normalizedBlocks.push(currentSub.trim());
+          subParas.push(currentSub.trim());
         }
+
+        subParas.forEach((subText, subIdx) => {
+          pieces.push({
+            text: subText,
+            blockId,
+            isSubPiece: true,
+            subPieceIndex: subIdx,
+            totalSubPieces: subParas.length,
+          });
+        });
       }
-    }
+    });
 
     const chunks: ChunkItem[] = [];
     let currentBatch: string[] = [];
@@ -48,24 +71,35 @@ export class TextAdapter implements DocumentAdapter {
           id: chunkId++,
           originalText: joined,
           maskedText: joined,
+          metadata: { isSubChunk: false },
         });
         currentBatch = [];
         currentBatchLen = 0;
       }
     };
 
-    for (const block of normalizedBlocks) {
-      const trimmed = block.trim();
-      if (!trimmed) continue;
-
-      const addedLen = currentBatch.length > 0 ? trimmed.length + 2 : trimmed.length;
-
-      if (currentBatch.length > 0 && (currentBatchLen + addedLen) > config.maxChunkSize) {
+    for (const piece of pieces) {
+      if (piece.isSubPiece) {
         flushBatch();
+        chunks.push({
+          id: chunkId++,
+          originalText: piece.text,
+          maskedText: piece.text,
+          metadata: {
+            blockId: piece.blockId,
+            isSubChunk: true,
+            subChunkIndex: piece.subPieceIndex,
+            totalSubChunks: piece.totalSubPieces,
+          },
+        });
+      } else {
+        const addedLen = currentBatch.length > 0 ? piece.text.length + 2 : piece.text.length;
+        if (currentBatch.length > 0 && (currentBatchLen + addedLen) > config.maxChunkSize) {
+          flushBatch();
+        }
+        currentBatch.push(piece.text);
+        currentBatchLen += (currentBatch.length > 1 ? 2 : 0) + piece.text.length;
       }
-
-      currentBatch.push(trimmed);
-      currentBatchLen += (currentBatch.length > 1 ? 2 : 0) + trimmed.length;
     }
 
     flushBatch();
@@ -78,6 +112,35 @@ export class TextAdapter implements DocumentAdapter {
 
   async unmaskAndSerialize(translatedChunks: ChunkItem[], _state: any): Promise<string> {
     const sortedChunks = translatedChunks.slice().sort((a, b) => a.id - b.id);
-    return sortedChunks.map((c) => c.translatedText || c.maskedText).join('\n\n');
+    let fullText = '';
+
+    for (let i = 0; i < sortedChunks.length; i++) {
+      const chunk = sortedChunks[i];
+      const text = (chunk.translatedText ?? chunk.maskedText).trim();
+      if (!text) continue;
+
+      if (fullText.length === 0) {
+        fullText = text;
+      } else {
+        const prevChunk = sortedChunks[i - 1];
+        const isSameBlockSubChunk =
+          Boolean(prevChunk?.metadata?.isSubChunk) &&
+          Boolean(chunk.metadata?.isSubChunk) &&
+          prevChunk?.metadata?.blockId !== undefined &&
+          prevChunk.metadata.blockId === chunk.metadata?.blockId;
+
+        if (isSameBlockSubChunk) {
+          if (fullText.endsWith('\n')) {
+            fullText += text;
+          } else {
+            fullText += ' ' + text;
+          }
+        } else {
+          fullText += '\n\n' + text;
+        }
+      }
+    }
+
+    return fullText;
   }
 }

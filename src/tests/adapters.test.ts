@@ -230,6 +230,31 @@ Paragraph two is slightly longer and introduces more background information for 
   }
 });
 
+test('TextAdapter - Oversized paragraph splits and rejoins as ONE single paragraph', async () => {
+  const { TextAdapter } = await import('../core/adapters/text.adapter.js');
+  const { updateRuntimeConfig } = await import('../config.js');
+  updateRuntimeConfig({ maxChunkSize: 100 });
+
+  const adapter = new TextAdapter();
+  const textContent = `First short paragraph.
+
+This is a very long text paragraph with multiple complete sentences. It explains complex concepts across several phrases. It continues even further to ensure it exceeds the max chunk size limit.
+
+Final concluding paragraph.`;
+
+  const parsed = await adapter.parseAndMask(textContent, {
+    sourceLang: 'en',
+    targetLang: 'vi',
+    style: 'natural',
+  });
+
+  assert.ok(parsed.chunks.length >= 3);
+  const reconstructed = await adapter.unmaskAndSerialize(parsed.chunks, parsed.state);
+  const paragraphs = reconstructed.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+
+  assert.equal(paragraphs.length, 3, `Expected 3 paragraphs in TextAdapter, got ${paragraphs.length}:\n${reconstructed}`);
+});
+
 test('MarkdownAdapter - Large Table and Nested List handling', async () => {
   const adapter = new MarkdownAdapter();
   const { updateRuntimeConfig } = await import('../config.js');
@@ -359,6 +384,57 @@ test('MarkdownAdapter - Accumulates small paragraphs until maxChunkSize is reach
   assert.ok(parsedMulti.chunks.length > 1);
   assert.ok(parsedMulti.chunks.length < 6); // Not 1 chunk per paragraph (6), but batched together (<6)
 });
+
+test('MarkdownAdapter - Oversized paragraph splits into sub-chunks and rejoins as ONE single paragraph', async () => {
+  const adapter = new MarkdownAdapter();
+  const { updateRuntimeConfig } = await import('../config.js');
+  updateRuntimeConfig({ maxChunkSize: 120 });
+
+  const heading = '# Chương 1: Giới thiệu kiến trúc';
+  const shortIntro = 'Đây là đoạn mở đầu ngắn gọn.';
+  const longParagraph = 'Câu thứ nhất trong đoạn văn rất dài giải thích về thuật toán. Câu thứ hai tiếp tục mở rộng thêm các khía cạnh phân tích chi tiết. Câu thứ ba cung cấp các dẫn chứng thực nghiệm cụ thể và đánh giá độ chính xác. Câu thứ tư tổng hợp lại toàn bộ kết luận của đoạn văn dài này.';
+  const conclusion = 'Đây là đoạn kết luận kết thúc chương.';
+
+  const doc = `${heading}\n\n${shortIntro}\n\n${longParagraph}\n\n${conclusion}`;
+
+  const parsed = await adapter.parseAndMask(doc, {
+    sourceLang: 'vi',
+    targetLang: 'en',
+    style: 'technical',
+  });
+
+  // Long paragraph alone was ~270 chars > 120 maxChunkSize, so it must be split into multiple sub-chunks
+  const subChunks = parsed.chunks.filter((c) => c.metadata?.isSubChunk);
+  assert.ok(subChunks.length >= 2, 'Long paragraph should be split into at least 2 sub-chunks');
+
+  // Verify each sub-chunk contains the subChunk metadata
+  assert.equal(subChunks[0].metadata?.blockType, 'paragraph');
+  assert.equal(subChunks[0].metadata?.subChunkIndex, 0);
+
+  // Simulate translation for each chunk
+  const translatedChunks = parsed.chunks.map((c) => ({
+    ...c,
+    translatedText: c.maskedText.replace('Câu thứ nhất', '[Dịch] Câu thứ nhất'),
+  }));
+
+  // Reconstruct document
+  const reconstructed = await adapter.unmaskAndSerialize(translatedChunks, parsed.state);
+
+  // Split by double newline \n\n to check paragraph count
+  const paragraphs = reconstructed.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+
+  // There should be EXACTLY 4 paragraphs: (1) Heading, (2) Short intro, (3) Long paragraph, (4) Conclusion
+  assert.equal(paragraphs.length, 4, `Expected exactly 4 paragraphs, but got ${paragraphs.length}:\n${reconstructed}`);
+
+  // Verify the 3rd paragraph is intact and contains all sentences joined as 1 single paragraph
+  assert.ok(paragraphs[2].includes('Câu thứ nhất'));
+  assert.ok(paragraphs[2].includes('Câu thứ hai'));
+  assert.ok(paragraphs[2].includes('Câu thứ ba'));
+  assert.ok(paragraphs[2].includes('Câu thứ tư'));
+  // And the 3rd paragraph must NOT contain any internal \n\n
+  assert.ok(!paragraphs[2].includes('\n\n'));
+});
+
 
 
 
