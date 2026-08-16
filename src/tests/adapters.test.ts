@@ -301,5 +301,23 @@ test('OpenAIService - RefineText parameter validation', async () => {
   );
 });
 
+test('OpenAIService - stripThinkingTags removes reasoning blocks from DeepSeek-R1', async () => {
+  const { stripThinkingTags } = await import('../core/openai-service.js');
+
+  const withClosedThink = '<think>I need to translate this sentence to Vietnamese.</think>Xin chào thế giới!';
+  assert.equal(stripThinkingTags(withClosedThink), 'Xin chào thế giới!');
+
+  const withMultilineThink = `<think>
+1. Identify tone: formal
+2. Select appropriate terminology
+</think>
+Đây là kết quả dịch hoàn chỉnh.`;
+  assert.equal(stripThinkingTags(withMultilineThink), 'Đây là kết quả dịch hoàn chỉnh.');
+
+  const normalText = 'Bản dịch thông thường không có think tag.';
+  assert.equal(stripThinkingTags(normalText), 'Bản dịch thông thường không có think tag.');
+});
+
+
 
 

@@ -700,6 +700,15 @@ async function startTranslation() {
   }
 }
 
+function stripThinkingTags(text) {
+  if (!text) return '';
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<think>[\s\S]*$/gi, '')
+    .replace(/^<\/think>/gi, '')
+    .trim();
+}
+
 function handleTranslationEvent(type, data) {
   if (type === 'progress') {
     if (data.totalChunks) liveTotalChunks = data.totalChunks;
@@ -713,7 +722,10 @@ function handleTranslationEvent(type, data) {
     const parts = [];
     for (let i = 0; i < maxIdx; i++) {
       if (liveChunkBuffers[i] !== undefined && liveChunkBuffers[i].length > 0) {
-        parts.push(liveChunkBuffers[i]);
+        const cleanChunk = stripThinkingTags(liveChunkBuffers[i]);
+        if (cleanChunk.length > 0) {
+          parts.push(cleanChunk);
+        }
       }
     }
     const liveMarkdown = parts.join('\n\n');
@@ -726,7 +738,7 @@ function handleTranslationEvent(type, data) {
   } else if (type === 'complete') {
     liveChunkBuffers = {};
     liveTotalChunks = 0;
-    currentTranslatedText = data.translatedContent;
+    currentTranslatedText = stripThinkingTags(data.translatedContent);
     targetEditor.value = currentTranslatedText;
     renderTargetMarkdown(currentTranslatedText, true);
     renderDiffView(sourceEditor.value, currentTranslatedText);

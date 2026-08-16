@@ -57,6 +57,8 @@ CRITICAL RULES FOR STRUCTURE & SYNTAX PRESERVATION:
 3. PRESERVE PARAGRAPHS, LINE BREAKS & INDENTATION:
    - Maintain the exact paragraph boundaries, line breaks, and indentation.
    - Do NOT merge separate paragraphs or list items into a single run-on block.
+4. NO META COMMENTARY OR THINKING TAGS:
+   - Do NOT output <think> tags, internal reasoning thoughts, notes, apologies, or explanations. Output ONLY the translated text directly.
 `;
 
   if (customGlossary && Object.keys(customGlossary).length > 0) {

@@ -11,6 +11,15 @@ export interface TranslationCallResult {
 
 export type TokenCallback = (token: string, chunkId: number) => void;
 
+export function stripThinkingTags(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<think>[\s\S]*$/gi, '')
+    .replace(/^<\/think>/gi, '')
+    .trim();
+}
+
 export class OpenAIService {
   constructor(private cache: TranslationCache = defaultTranslationCache) {}
 
@@ -79,17 +88,55 @@ export class OpenAIService {
         stream: true,
       });
 
-      let fullTranslated = '';
+      let fullRaw = '';
+      let isInsideThink = false;
+      let buffer = '';
 
       for await (const chunk of stream) {
         const delta = chunk.choices[0]?.delta?.content || '';
-        if (delta) {
-          fullTranslated += delta;
-          onToken?.(delta, chunkId);
+        if (!delta) continue;
+
+        fullRaw += delta;
+        buffer += delta;
+
+        if (isInsideThink) {
+          const endIdx = buffer.indexOf('</think>');
+          if (endIdx !== -1) {
+            isInsideThink = false;
+            const afterThink = buffer.substring(endIdx + 8);
+            buffer = '';
+            if (afterThink.length > 0) {
+              onToken?.(afterThink, chunkId);
+            }
+          }
+        } else {
+          const trimmed = buffer.trimStart();
+          if (trimmed.startsWith('<think>')) {
+            isInsideThink = true;
+            const endIdx = buffer.indexOf('</think>');
+            if (endIdx !== -1) {
+              isInsideThink = false;
+              const afterThink = buffer.substring(endIdx + 8);
+              buffer = '';
+              if (afterThink.length > 0) {
+                onToken?.(afterThink, chunkId);
+              }
+            }
+          } else if (trimmed.length < 7 && '<think>'.startsWith(trimmed) && trimmed.length > 0) {
+            // Partial '<think' prefix, wait for next token
+            continue;
+          } else {
+            onToken?.(buffer, chunkId);
+            buffer = '';
+          }
         }
       }
 
-      fullTranslated = fullTranslated.trim();
+      if (!isInsideThink && buffer.length > 0) {
+        onToken?.(buffer, chunkId);
+      }
+
+      const fullTranslated = stripThinkingTags(fullRaw);
 
       // 3. Save to Cache
       if (useCache && fullTranslated.length > 0) {
@@ -163,7 +210,8 @@ CRITICAL RULES:
 2. Output in ${targetLang} language with a ${style} style unless the instruction specifies otherwise.
 3. Preserve valid Markdown formatting syntax (pipes for tables, dashes for lists, backticks for code, math dollar signs).
 4. Preserve any placeholder tokens like [[_MASK_..._]] exactly without alteration.
-5. Return ONLY the replacement text for [SELECTED TEXT]. Do NOT include conversational filler, explanations, markdown commentary, or extra wrapping codeblocks unless the selection itself was a codeblock.`;
+5. Do NOT include <think> tags, reasoning process, commentary, explanations, or extra wrapping codeblocks.
+6. Return ONLY the replacement text for [SELECTED TEXT].`;
 
     let userPrompt = '';
     if (contextBefore.trim().length > 0 || contextAfter.trim().length > 0) {
@@ -188,7 +236,8 @@ CRITICAL RULES:
         temperature: 0.2,
       });
 
-      return res.choices[0]?.message?.content?.trim() || selectedText;
+      const rawResult = res.choices[0]?.message?.content || selectedText;
+      return stripThinkingTags(rawResult) || selectedText;
     } catch (error: any) {
       const msg = error?.message || 'Lỗi khi gọi API chỉnh sửa';
       throw new Error(`Lỗi chỉnh sửa AI (${model}): ${msg}`);
