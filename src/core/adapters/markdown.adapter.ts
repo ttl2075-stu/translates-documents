@@ -93,8 +93,11 @@ export class MarkdownAdapter implements DocumentAdapter {
   async unmaskAndSerialize(translatedChunks: ChunkItem[], state: any): Promise<string> {
     const maskRecords: MaskRecord[] = state?.maskRecords || [];
 
+    // Ensure chunks are in strict sequential order 0..N
+    const sortedChunks = translatedChunks.slice().sort((a, b) => a.id - b.id);
+
     // Reconstruct full text from translated chunks with clean paragraph separation
-    let fullTranslated = translatedChunks
+    let fullTranslated = sortedChunks
       .map((c) => (c.translatedText ?? c.maskedText).trim())
       .filter((t) => t.length > 0)
       .join('\n\n');

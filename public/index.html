@@ -67,7 +67,7 @@
       <!-- Header Top Actions -->
       <div class="flex items-center gap-2">
         <!-- Background Jobs Manager Button with live counter badge -->
-        <button id="btn-open-jobs-modal" class="relative inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-blue-600 rounded-md transition-colors shadow-xs" title="Quản lý các tiến trình dịch chạy nền (Treo máy server & Hủy tác vụ)">
+        <button id="btn-open-jobs-modal" onclick="openJobsModal()" class="relative inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 hover:text-blue-600 rounded-md transition-colors shadow-xs cursor-pointer" title="Quản lý các tiến trình dịch chạy nền (Treo máy server & Hủy tác vụ)">
           <i class="fa-solid fa-list-check text-blue-600"></i>
           <span>Tiến trình nền</span>
           <span id="active-jobs-badge" class="hidden ml-1 px-1.5 py-0.2 text-[10px] font-bold bg-blue-600 text-white rounded-full">0</span>

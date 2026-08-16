@@ -780,17 +780,24 @@ function handleTranslationEvent(type, data) {
     const chunkId = data.chunkId !== undefined ? data.chunkId : 0;
     liveChunkBuffers[chunkId] = (liveChunkBuffers[chunkId] || '') + data.token;
 
-    // Compose ordered live markdown across distinct chunk slots
-    const maxIdx = Math.max(liveTotalChunks, Object.keys(liveChunkBuffers).length);
+    // Compose ordered live markdown across distinct chunk slots (never reorder out of sequence)
+    const activeIndices = Object.keys(liveChunkBuffers).map(Number);
+    const maxActiveIdx = activeIndices.length > 0 ? Math.max(...activeIndices) : 0;
+    const totalSlots = Math.max(liveTotalChunks, maxActiveIdx + 1, 1);
     const parts = [];
-    for (let i = 0; i < maxIdx; i++) {
+
+    for (let i = 0; i < totalSlots; i++) {
       if (liveChunkBuffers[i] !== undefined && liveChunkBuffers[i].length > 0) {
         const cleanChunk = stripThinkingTags(liveChunkBuffers[i]);
         if (cleanChunk.length > 0) {
           parts.push(cleanChunk);
         }
+      } else if (i < maxActiveIdx) {
+        // Placeholder for earlier chunks still in-flight so later chunks do not jump to top
+        parts.push(`<!-- [Đang dịch đoạn ${i + 1}...] -->`);
       }
     }
+
     const liveMarkdown = parts.join('\n\n');
     targetEditor.value = liveMarkdown;
 
@@ -1381,19 +1388,40 @@ async function checkActiveJobOnLoad() {
 }
 
 function openJobsModal() {
-  jobsModal.classList.remove('hidden');
+  const modal = jobsModal || document.getElementById('jobs-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
   loadJobsList();
   if (jobsRefreshInterval) clearInterval(jobsRefreshInterval);
   jobsRefreshInterval = setInterval(loadJobsList, 4000);
 }
 
 function closeJobsModal() {
-  jobsModal.classList.add('hidden');
+  const modal = jobsModal || document.getElementById('jobs-modal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.style.display = 'none';
   if (jobsRefreshInterval) {
     clearInterval(jobsRefreshInterval);
     jobsRefreshInterval = null;
   }
 }
+
+// Expose globally for inline onclick fallback
+window.openJobsModal = openJobsModal;
+window.closeJobsModal = closeJobsModal;
+
+// Document-level delegated click listener for maximum reliability
+document.addEventListener('click', (e) => {
+  const target = e.target;
+  if (target && target.closest('#btn-open-jobs-modal')) {
+    e.preventDefault();
+    openJobsModal();
+  } else if (target && (target.id === 'jobs-modal' || target.closest('#btn-close-jobs-modal') || target.closest('#btn-close-jobs-modal-footer'))) {
+    closeJobsModal();
+  }
+});
 
 async function loadJobsList() {
   jobsLoadingState.classList.remove('hidden');

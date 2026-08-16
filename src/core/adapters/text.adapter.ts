@@ -49,6 +49,7 @@ export class TextAdapter implements DocumentAdapter {
   }
 
   async unmaskAndSerialize(translatedChunks: ChunkItem[], _state: any): Promise<string> {
-    return translatedChunks.map((c) => c.translatedText || c.maskedText).join('\n\n');
+    const sortedChunks = translatedChunks.slice().sort((a, b) => a.id - b.id);
+    return sortedChunks.map((c) => c.translatedText || c.maskedText).join('\n\n');
   }
 }

@@ -143,16 +143,17 @@ export class TranslationEngine {
 
     await Promise.all(workers);
 
-    // 4. Assemble & Unmask Document
+    // 4. Assemble & Unmask Document in strict sequential order
     onProgress?.({
       currentChunk: totalChunks,
       totalChunks,
       percent: 96,
       status: 'assembling',
-      message: 'Đang hoàn thiện và khôi phục định dạng gốc...',
+      message: 'Đang hoàn thiện và khôi phục định dạng gốc theo đúng trật tự...',
     });
 
-    const translatedContent = await adapter.unmaskAndSerialize(translatedChunks, parseResult.state);
+    const sortedChunks = translatedChunks.slice().sort((a, b) => a.id - b.id);
+    const translatedContent = await adapter.unmaskAndSerialize(sortedChunks, parseResult.state);
     const durationMs = Date.now() - startTime;
     const cacheStats = defaultTranslationCache.getStats();
 
