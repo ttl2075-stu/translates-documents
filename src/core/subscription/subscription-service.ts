@@ -10,6 +10,8 @@ export interface SubscriptionPlan {
   durationDays: number;
   charLimitMonthly: number;
   maxConcurrentJobs: number;
+  allowBackgroundJobs: boolean;
+  allowAiFormatReview: boolean;
   features: string[];
   badge?: string | null;
   isActive: boolean;
@@ -60,9 +62,10 @@ export class SubscriptionService {
     });
   }
 
-  public async getAllPlans(): Promise<SubscriptionPlan[]> {
+  public async getAllPlans(includeInactive = false): Promise<SubscriptionPlan[]> {
+    const where = includeInactive ? {} : { isActive: true };
     const rows = await prisma.subscriptionPlan.findMany({
-      where: { isActive: true },
+      where,
       orderBy: { priceVnd: 'asc' },
     });
 
@@ -73,6 +76,8 @@ export class SubscriptionService {
       durationDays: r.durationDays,
       charLimitMonthly: r.charLimitMonthly,
       maxConcurrentJobs: r.maxConcurrentJobs,
+      allowBackgroundJobs: r.allowBackgroundJobs,
+      allowAiFormatReview: r.allowAiFormatReview,
       features: JSON.parse(r.features || '[]'),
       badge: r.badge,
       isActive: r.isActive,
@@ -90,10 +95,50 @@ export class SubscriptionService {
       durationDays: r.durationDays,
       charLimitMonthly: r.charLimitMonthly,
       maxConcurrentJobs: r.maxConcurrentJobs,
+      allowBackgroundJobs: r.allowBackgroundJobs,
+      allowAiFormatReview: r.allowAiFormatReview,
       features: JSON.parse(r.features || '[]'),
       badge: r.badge,
       isActive: r.isActive,
     };
+  }
+
+  public async createPlan(data: {
+    id: string;
+    name: string;
+    priceVnd: number;
+    durationDays?: number;
+    charLimitMonthly: number;
+    maxConcurrentJobs?: number;
+    allowBackgroundJobs?: boolean;
+    allowAiFormatReview?: boolean;
+    features?: string[];
+    badge?: string;
+  }): Promise<SubscriptionPlan> {
+    const cleanId = data.id.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    if (!cleanId) throw new Error('Mã gói cước (ID) không hợp lệ.');
+
+    const existing = await this.getPlanById(cleanId);
+    if (existing) throw new Error(`Mã gói cước "${cleanId}" đã tồn tại.`);
+
+    await prisma.subscriptionPlan.create({
+      data: {
+        id: cleanId,
+        name: data.name.trim(),
+        priceVnd: BigInt(data.priceVnd || 0),
+        durationDays: data.durationDays || 30,
+        charLimitMonthly: data.charLimitMonthly || 100000,
+        maxConcurrentJobs: data.maxConcurrentJobs || 1,
+        allowBackgroundJobs: Boolean(data.allowBackgroundJobs),
+        allowAiFormatReview: Boolean(data.allowAiFormatReview),
+        features: JSON.stringify(data.features || []),
+        badge: data.badge ? data.badge.trim() : null,
+        isActive: true,
+      },
+    });
+
+    const created = await this.getPlanById(cleanId);
+    return created!;
   }
 
   public async updatePlan(
@@ -101,10 +146,14 @@ export class SubscriptionService {
     data: {
       name?: string;
       priceVnd?: number;
+      durationDays?: number;
       charLimitMonthly?: number;
       maxConcurrentJobs?: number;
+      allowBackgroundJobs?: boolean;
+      allowAiFormatReview?: boolean;
       features?: string[];
       badge?: string;
+      isActive?: boolean;
     }
   ): Promise<SubscriptionPlan> {
     const plan = await this.getPlanById(planId);
@@ -112,25 +161,53 @@ export class SubscriptionService {
 
     const name = data.name !== undefined ? data.name : plan.name;
     const priceVnd = data.priceVnd !== undefined ? BigInt(data.priceVnd) : BigInt(plan.priceVnd);
+    const durationDays = data.durationDays !== undefined ? data.durationDays : plan.durationDays;
     const charLimitMonthly = data.charLimitMonthly !== undefined ? data.charLimitMonthly : plan.charLimitMonthly;
     const maxConcurrentJobs = data.maxConcurrentJobs !== undefined ? data.maxConcurrentJobs : plan.maxConcurrentJobs;
+    const allowBackgroundJobs = data.allowBackgroundJobs !== undefined ? data.allowBackgroundJobs : plan.allowBackgroundJobs;
+    const allowAiFormatReview = data.allowAiFormatReview !== undefined ? data.allowAiFormatReview : plan.allowAiFormatReview;
     const features = data.features !== undefined ? JSON.stringify(data.features) : JSON.stringify(plan.features);
     const badge = data.badge !== undefined ? data.badge : plan.badge;
+    const isActive = data.isActive !== undefined ? data.isActive : plan.isActive;
 
     await prisma.subscriptionPlan.update({
       where: { id: planId },
       data: {
         name,
         priceVnd,
+        durationDays,
         charLimitMonthly,
         maxConcurrentJobs,
+        allowBackgroundJobs,
+        allowAiFormatReview,
         features,
         badge,
+        isActive,
       },
     });
 
     const updated = await this.getPlanById(planId);
     return updated!;
+  }
+
+  public async deletePlan(planId: string): Promise<void> {
+    if (planId === 'free') {
+      throw new Error('Không thể xóa gói cước mặc định (free).');
+    }
+
+    // Check if any subscriptions or orders exist with this plan
+    const subCount = await prisma.subscription.count({ where: { planId } });
+    const orderCount = await prisma.order.count({ where: { planId } });
+
+    if (subCount > 0 || orderCount > 0) {
+      // Soft-delete by setting isActive = false
+      await prisma.subscriptionPlan.update({
+        where: { id: planId },
+        data: { isActive: false },
+      });
+    } else {
+      await prisma.subscriptionPlan.delete({ where: { id: planId } });
+    }
   }
 
   public async createOrder(userId: string, planId: string): Promise<OrderDetails> {

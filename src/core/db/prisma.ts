@@ -79,6 +79,8 @@ export async function initPrismaDatabase(): Promise<void> {
           durationDays: 3650,
           charLimitMonthly: 20000,
           maxConcurrentJobs: 1,
+          allowBackgroundJobs: false,
+          allowAiFormatReview: false,
           features: JSON.stringify([
             'Dịch tối đa 20.000 ký tự / tháng',
             'Bảo toàn Markdown, Code, TXT',
@@ -95,6 +97,8 @@ export async function initPrismaDatabase(): Promise<void> {
           durationDays: 30,
           charLimitMonthly: 500000,
           maxConcurrentJobs: 3,
+          allowBackgroundJobs: true,
+          allowAiFormatReview: true,
           features: JSON.stringify([
             'Dịch 500.000 ký tự / tháng (~300 trang sách)',
             'Tất cả định dạng Markdown, JSON, TXT, Docs',
@@ -113,6 +117,8 @@ export async function initPrismaDatabase(): Promise<void> {
           durationDays: 30,
           charLimitMonthly: 3000000,
           maxConcurrentJobs: 10,
+          allowBackgroundJobs: true,
+          allowAiFormatReview: true,
           features: JSON.stringify([
             'Dịch 3.000.000 ký tự / tháng (~1.800 trang)',
             'Mọi tính năng của gói Pro',
@@ -130,7 +136,10 @@ export async function initPrismaDatabase(): Promise<void> {
         await prisma.subscriptionPlan.upsert({
           where: { id: p.id },
           create: p,
-          update: {},
+          update: {
+            allowBackgroundJobs: p.allowBackgroundJobs,
+            allowAiFormatReview: p.allowAiFormatReview,
+          },
         });
       }
     }

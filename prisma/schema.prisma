@@ -38,10 +38,12 @@ model SubscriptionPlan {
   priceVnd          BigInt          @map("price_vnd")
   durationDays      Int             @default(30) @map("duration_days")
   charLimitMonthly  Int             @map("char_limit_monthly")
-  maxConcurrentJobs Int             @default(1) @map("max_concurrent_jobs")
-  features          String          @db.Text
-  badge             String?         @db.VarChar(100)
-  isActive          Boolean         @default(true) @map("is_active")
+  maxConcurrentJobs   Int             @default(1) @map("max_concurrent_jobs")
+  allowBackgroundJobs Boolean         @default(false) @map("allow_background_jobs")
+  allowAiFormatReview Boolean         @default(false) @map("allow_ai_format_review")
+  features            String          @db.Text
+  badge               String?         @db.VarChar(100)
+  isActive            Boolean         @default(true) @map("is_active")
 
   subscriptions     Subscription[]
   orders            Order[]

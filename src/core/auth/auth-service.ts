@@ -27,6 +27,8 @@ export interface UserSubscriptionDTO {
   charsUsedMonth: number;
   charLimitMonthly: number;
   maxConcurrentJobs: number;
+  allowBackgroundJobs: boolean;
+  allowAiFormatReview: boolean;
   features: string[];
 }
 
@@ -524,6 +526,8 @@ export class AuthService {
       charsUsedMonth: sub.charsUsedMonth,
       charLimitMonthly: sub.plan.charLimitMonthly,
       maxConcurrentJobs: sub.plan.maxConcurrentJobs,
+      allowBackgroundJobs: Boolean(sub.plan.allowBackgroundJobs),
+      allowAiFormatReview: Boolean(sub.plan.allowAiFormatReview),
       features,
     };
   }

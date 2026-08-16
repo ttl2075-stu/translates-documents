@@ -134,10 +134,36 @@ adminRouter.put('/users/:id', async (req: AuthenticatedRequest, res: Response) =
 // 4. Get & Edit Plans
 adminRouter.get('/plans', async (_req, res) => {
   try {
-    const plans = await defaultSubscriptionService.getAllPlans();
+    const plans = await defaultSubscriptionService.getAllPlans(true);
     res.json({ success: true, plans });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+adminRouter.post('/plans', async (req, res) => {
+  try {
+    const { id, name, priceVnd, durationDays, charLimitMonthly, maxConcurrentJobs, allowBackgroundJobs, allowAiFormatReview, features, badge } = req.body;
+    if (!id || !name) {
+      return res.status(400).json({ success: false, error: 'Vui lòng cung cấp mã gói (ID) và tên gói.' });
+    }
+
+    const created = await defaultSubscriptionService.createPlan({
+      id,
+      name,
+      priceVnd: Number(priceVnd) || 0,
+      durationDays: Number(durationDays) || 30,
+      charLimitMonthly: Number(charLimitMonthly) || 100000,
+      maxConcurrentJobs: Number(maxConcurrentJobs) || 1,
+      allowBackgroundJobs: Boolean(allowBackgroundJobs),
+      allowAiFormatReview: Boolean(allowAiFormatReview),
+      features: Array.isArray(features) ? features : [],
+      badge,
+    });
+
+    res.json({ success: true, message: 'Thêm gói cước mới thành công!', plan: created });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
   }
 });
 
@@ -146,6 +172,16 @@ adminRouter.put('/plans/:id', async (req, res) => {
     const planId = req.params.id;
     const updated = await defaultSubscriptionService.updatePlan(planId, req.body);
     res.json({ success: true, message: 'Cập nhật thông tin gói cước thành công!', plan: updated });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+adminRouter.delete('/plans/:id', async (req, res) => {
+  try {
+    const planId = req.params.id;
+    await defaultSubscriptionService.deletePlan(planId);
+    res.json({ success: true, message: `Đã xóa/vô hiệu hóa gói cước "${planId}" thành công!` });
   } catch (error: any) {
     res.status(400).json({ success: false, error: error.message });
   }
