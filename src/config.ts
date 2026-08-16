@@ -28,7 +28,17 @@ export interface AppConfig {
   googleClientId: string;
   googleClientSecret: string;
   googleCallbackUrl: string;
+  databaseUrl: string;
 }
+
+const dbUser = process.env.DB_USER || 'root';
+const dbPass = process.env.DB_PASS || '';
+const dbHost = process.env.DB_HOST || 'localhost';
+const dbPort = parseInt(process.env.DB_PORT || '3306', 10);
+const dbName = process.env.DB_NAME || 'translate_saas';
+const dbPassPart = dbPass ? `:${encodeURIComponent(dbPass)}` : '';
+const calculatedDbUrl = process.env.DATABASE_URL || `mysql://${encodeURIComponent(dbUser)}${dbPassPart}@${dbHost}:${dbPort}/${dbName}`;
+process.env.DATABASE_URL = calculatedDbUrl;
 
 export const config: AppConfig = {
   port: parseInt(process.env.PORT || '3000', 10),
@@ -44,11 +54,11 @@ export const config: AppConfig = {
   smtpPass: process.env.SMTP_PASS || '',
   smtpFrom: process.env.SMTP_FROM || 'AI Document Translator <noreply@translator.local>',
   jwtSecret: process.env.JWT_SECRET || 'trans-saas-jwt-secret-key-change-in-production-2026',
-  dbHost: process.env.DB_HOST || 'localhost',
-  dbPort: parseInt(process.env.DB_PORT || '3306', 10),
-  dbUser: process.env.DB_USER || 'root',
-  dbPass: process.env.DB_PASS || '',
-  dbName: process.env.DB_NAME || 'translate_saas',
+  dbHost,
+  dbPort,
+  dbUser,
+  dbPass,
+  dbName,
   sepayWebhookSecret: process.env.SEPAY_WEBHOOK_SECRET || '',
   bankName: process.env.BANK_NAME || 'MBBank',
   bankAccount: process.env.BANK_ACCOUNT || '0988888888',
@@ -57,6 +67,7 @@ export const config: AppConfig = {
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   googleCallbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3000/api/auth/google/callback',
+  databaseUrl: calculatedDbUrl,
 };
 
 export function updateRuntimeConfig(newConfig: Partial<AppConfig>): AppConfig {

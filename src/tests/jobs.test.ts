@@ -17,7 +17,7 @@ test('JobManager - Creates, tracks and aborts background translation jobs', asyn
     recipientEmail: 'test@example.com',
   });
 
-  assert.ok(job.id.startsWith('job_'));
+  assert.ok(job.id && job.id.length === 36, 'Job ID should be UUIDv7');
   assert.equal(job.status, 'pending');
   assert.equal(job.filename, 'test_job.md');
   assert.equal(job.recipientEmail, 'test@example.com');

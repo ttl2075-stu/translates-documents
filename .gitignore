@@ -29,3 +29,10 @@ Thumbs.db
 coverage/
 .temp/
 tmp/
+
+# Agent skills and tool metadata
+.agents/
+.claude/
+.junie/
+skills-lock.json
+

@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String          @id @db.VarChar(100)
+  email             String          @unique @db.VarChar(191)
+  passwordHash      String?         @map("password_hash") @db.VarChar(255)
+  name              String          @db.VarChar(255)
+  avatarUrl         String?         @map("avatar_url") @db.Text
+  googleId          String?         @unique @map("google_id") @db.VarChar(100)
+  role              String          @default("user") @db.VarChar(50)
+  status            String          @default("active") @db.VarChar(50)
+  resetToken        String?         @map("reset_token") @db.VarChar(50)
+  resetTokenExpires BigInt?         @map("reset_token_expires")
+  createdAt         BigInt          @map("created_at")
+
+  subscriptions     Subscription[]
+  orders            Order[]
+  jobs              Job[]
+
+  @@index([status], map: "idx_user_status")
+  @@index([createdAt(sort: Desc)], map: "idx_user_created")
+  @@map("users")
+}
+
+model SubscriptionPlan {
+  id                String          @id @db.VarChar(50)
+  name              String          @db.VarChar(255)
+  priceVnd          BigInt          @map("price_vnd")
+  durationDays      Int             @default(30) @map("duration_days")
+  charLimitMonthly  Int             @map("char_limit_monthly")
+  maxConcurrentJobs Int             @default(1) @map("max_concurrent_jobs")
+  features          String          @db.Text
+  badge             String?         @db.VarChar(100)
+  isActive          Boolean         @default(true) @map("is_active")
+
+  subscriptions     Subscription[]
+  orders            Order[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id              String           @id @db.VarChar(100)
+  userId          String           @map("user_id") @db.VarChar(100)
+  planId          String           @map("plan_id") @db.VarChar(50)
+  status          String           @default("active") @db.VarChar(50)
+  startsAt        BigInt           @map("starts_at")
+  expiresAt       BigInt           @map("expires_at")
+  charsUsedMonth  Int              @default(0) @map("chars_used_month")
+  lastResetMonth  String           @map("last_reset_month") @db.VarChar(20)
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan            SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@index([userId], map: "idx_sub_user")
+  @@index([planId], map: "idx_sub_plan")
+  @@index([status, expiresAt], map: "idx_sub_status_expires")
+  @@map("subscriptions")
+}
+
+model Order {
+  id              String           @id @db.VarChar(100)
+  orderCode       String           @unique @map("order_code") @db.VarChar(100)
+  userId          String           @map("user_id") @db.VarChar(100)
+  planId          String           @map("plan_id") @db.VarChar(50)
+  amountVnd       BigInt           @map("amount_vnd")
+  status          String           @default("pending") @db.VarChar(50)
+  createdAt       BigInt           @map("created_at")
+  paidAt          BigInt?          @map("paid_at")
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan            SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@index([userId], map: "idx_order_user")
+  @@index([orderCode], map: "idx_order_code")
+  @@index([status], map: "idx_order_status")
+  @@map("orders")
+}
+
+model SepayTransaction {
+  id              BigInt           @id @default(autoincrement())
+  sepayId         BigInt           @unique @map("sepay_id")
+  gateway         String           @db.VarChar(100)
+  transactionDate String           @map("transaction_date") @db.VarChar(50)
+  accountNumber   String?          @map("account_number") @db.VarChar(100)
+  subAccount      String?          @map("sub_account") @db.VarChar(250)
+  code            String?          @db.VarChar(250)
+  amountIn        BigInt           @default(0) @map("amount_in")
+  amountOut       BigInt           @default(0) @map("amount_out")
+  accumulated     BigInt           @default(0)
+  content         String?          @db.Text
+  referenceCode   String?          @map("reference_code") @db.VarChar(255)
+  body            Json
+  createdAt       BigInt           @map("created_at")
+
+  @@index([code], map: "idx_sepay_code")
+  @@map("sepay_transactions")
+}
+
+model Job {
+  id                String         @id @db.VarChar(100)
+  userId            String         @map("user_id") @db.VarChar(100)
+  filename          String         @db.VarChar(255)
+  adapterId         String         @map("adapter_id") @db.VarChar(100)
+  adapterName       String         @map("adapter_name") @db.VarChar(100)
+  status            String         @db.VarChar(50)
+  progressPercent   Int            @default(0) @map("progress_percent")
+  optionsJson       String         @map("options_json") @db.Text
+  recipientEmail    String?        @map("recipient_email") @db.VarChar(255)
+  emailSent         Boolean        @default(false) @map("email_sent")
+  totalChunks       Int            @default(0) @map("total_chunks")
+  cachedChunks      Int            @default(0) @map("cached_chunks")
+  durationMs        Int            @default(0) @map("duration_ms")
+  rawContent        String?        @map("raw_content") @db.LongText
+  translatedContent String?        @map("translated_content") @db.LongText
+  errorMessage      String?        @map("error_message") @db.Text
+  createdAt         BigInt         @map("created_at")
+  completedAt       BigInt?        @map("completed_at")
+
+  user              User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)], map: "idx_jobs_user_created")
+  @@map("jobs")
+}
+
+model SystemSetting {
+  key             String           @id @db.VarChar(100)
+  value           String           @db.Text
+
+  @@map("system_settings")
+}
