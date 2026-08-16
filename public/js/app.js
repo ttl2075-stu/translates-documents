@@ -23,6 +23,10 @@ const typographySettings = {
 const sourceInputSection = document.getElementById('source-input-section');
 const btnToggleInput = document.getElementById('btn-toggle-input');
 const inputToggleLabel = document.getElementById('input-toggle-label');
+const btnToggleSource = document.getElementById('btn-toggle-source');
+const sourceTextareaWrapper = document.getElementById('source-textarea-wrapper');
+const sourceToggleIcon = document.getElementById('source-toggle-icon');
+let currentActiveJobId = null;
 
 const sourceEditor = document.getElementById('source-editor');
 const targetEditor = document.getElementById('target-editor');
@@ -122,10 +126,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   await refreshActiveJobsCount();
   checkActiveJobOnLoad();
   updateSourceStats();
+  updateFeatureSwitchesFromSubscription();
 
   // Polling active jobs count periodically
   setInterval(refreshActiveJobsCount, 8000);
 });
+
+function updateFeatureSwitchesFromSubscription() {
+  if (chkEnableFormatReview && typeof AuthState !== 'undefined' && AuthState.subscription) {
+    chkEnableFormatReview.checked = Boolean(AuthState.subscription.allowAiFormatReview);
+  }
+  if (chkRunBackground && typeof AuthState !== 'undefined' && AuthState.subscription) {
+    chkRunBackground.checked = Boolean(AuthState.subscription.allowBackgroundJobs);
+  }
+}
 
 // -------------------------------------------------------------
 // Event Listeners & Shortcuts
@@ -286,6 +300,16 @@ function setupEventListeners() {
       if (floatingRefineBtn) floatingRefineBtn.classList.add('hidden');
     }
   });
+
+  // Toggle source input expansion
+  if (btnToggleSource && sourceTextareaWrapper) {
+    btnToggleSource.addEventListener('click', () => {
+      const isHidden = sourceTextareaWrapper.classList.toggle('hidden');
+      if (sourceToggleIcon) {
+        sourceToggleIcon.className = isHidden ? 'fa-solid fa-chevron-down text-[10px]' : 'fa-solid fa-chevron-up text-[10px]';
+      }
+    });
+  }
 
   // Clear button
   btnClearSource.addEventListener('click', () => {
@@ -561,7 +585,9 @@ async function startTranslation() {
   const glossary = parseGlossary(inputGlossary.value);
   const customInstructions = inputCustomInstruction.value.trim();
 
-  const isBackground = chkRunBackground && chkRunBackground.checked;
+  // Auto-activate background job if user plan allows background jobs or user checked the box
+  const hasPlanBackground = Boolean(typeof AuthState !== 'undefined' && AuthState.subscription?.allowBackgroundJobs);
+  const isBackground = hasPlanBackground || (chkRunBackground && chkRunBackground.checked);
 
   const payload = {
     content,
@@ -624,6 +650,7 @@ async function startTranslation() {
       const jobData = await jobRes.json();
       const jobId = jobData.job?.id;
       if (jobId) {
+        currentActiveJobId = jobId;
         localStorage.setItem('active_translation_job', jobId);
         refreshActiveJobsCount();
         showToast('🚀 Tiến trình nền đã bắt đầu! Bạn có thể tắt máy bất cứ lúc nào.');
@@ -690,11 +717,25 @@ async function startTranslation() {
   } finally {
     clearInterval(progressTimer);
     setTranslatingState(false);
+    showProgressBar(false);
     activeAbortController = null;
-    localStorage.removeItem('active_translation_job');
-    refreshActiveJobsCount();
+    currentActiveJobId = null;
+    if (typeof refreshActiveJobsCount === 'function') refreshActiveJobsCount();
+    if (typeof reloadJobsHistory === 'function') reloadJobsHistory();
   }
 }
+
+// Cancel non-background active translation ONLY when user closes tab (beforeunload / pagehide)
+window.addEventListener('beforeunload', () => {
+  if (isTranslating && (!AuthState || !AuthState.subscription || !AuthState.subscription.allowBackgroundJobs)) {
+    if (currentActiveJobId) {
+      navigator.sendBeacon(`/api/jobs/${currentActiveJobId}/abort`);
+    }
+    if (activeAbortController) {
+      activeAbortController.abort();
+    }
+  }
+});
 
 function stripThinkingTags(text) {
   if (!text) return '';

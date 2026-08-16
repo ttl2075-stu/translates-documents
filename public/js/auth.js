@@ -241,10 +241,11 @@ function updateAuthUI(user, subscription) {
       subBadge.textContent = subscription.badge || subscription.planName;
     }
   } else {
-    if (guestArea) guestArea.classList.remove('hidden');
-    if (userArea) userArea.classList.add('hidden');
-    if (adminBtn) adminBtn.classList.add('hidden');
     if (subBadge) subBadge.textContent = 'Miễn phí';
+  }
+
+  if (typeof updateFeatureSwitchesFromSubscription === 'function') {
+    updateFeatureSwitchesFromSubscription();
   }
 }
 

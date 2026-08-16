@@ -124,45 +124,45 @@
   <!-- Main Content Container -->
   <div class="flex-1 max-w-7xl w-full mx-auto p-3 lg:p-5 flex flex-col gap-3">
 
-    <!-- Collapsible Source Input Section (Khung nhập nguồn) -->
-    <div id="source-input-section" class="no-print bg-white border border-slate-200 rounded-xl p-4 shadow-xs flex flex-col gap-3 transition-all">
-      <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+    <!-- Collapsible Compact Source Input Section (Khung nhập nguồn gọn gàng) -->
+    <div id="source-input-section" class="no-print bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex flex-col gap-2.5 transition-all">
+      <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-            <i class="fa-solid fa-file-import text-blue-600"></i> Nhập tài liệu nguồn
+            <i class="fa-solid fa-file-import text-blue-600"></i> Tài liệu nguồn
           </span>
-          <span id="source-stats" class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">0 ký tự | 0 từ</span>
+          <span id="source-stats" class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-mono">0 ký tự | 0 từ</span>
         </div>
         <div class="flex items-center gap-2">
-          <label for="file-upload-input" class="text-xs text-slate-600 hover:text-blue-600 font-medium px-2 py-1 rounded hover:bg-blue-50 cursor-pointer transition-colors">
-            <i class="fa-solid fa-arrow-up-from-bracket text-slate-400 mr-1"></i> Tải file lên
+          <label for="file-upload-input" class="text-xs text-slate-600 hover:text-blue-600 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 border border-slate-200/80 cursor-pointer transition-colors flex items-center gap-1 shadow-2xs">
+            <i class="fa-solid fa-arrow-up-from-bracket text-slate-400 text-[11px]"></i> Tải file
           </label>
           <input type="file" id="file-upload-input" accept=".md,.markdown,.json,.txt" class="hidden">
-          <button id="btn-clear-source" class="text-xs text-slate-500 hover:text-red-600 px-2 py-1 rounded hover:bg-red-50 transition-colors">
+          <button id="btn-clear-source" class="text-xs text-slate-500 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors" title="Xóa toàn bộ nội dung">
             <i class="fa-regular fa-trash-can mr-1"></i> Xóa
+          </button>
+          <button type="button" id="btn-toggle-source" class="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors" title="Thu gọn / Mở rộng khung nhập">
+            <i class="fa-solid fa-chevron-up text-[10px]" id="source-toggle-icon"></i>
           </button>
         </div>
       </div>
 
-      <!-- Textarea Input & Dropzone -->
-      <div class="relative">
-        <div id="dropzone" class="hidden absolute inset-0 bg-blue-50/90 backdrop-blur-sm z-20 flex items-center justify-center border-2 border-dashed border-blue-400 rounded-lg">
+      <!-- Textarea Input & Dropzone (Thu gọn mượt mà) -->
+      <div id="source-textarea-wrapper" class="relative transition-all">
+        <div id="dropzone" class="hidden absolute inset-0 bg-blue-50/90 backdrop-blur-sm z-20 flex items-center justify-center border-2 border-dashed border-blue-400 rounded-xl">
           <div class="text-center text-blue-600">
             <i class="fa-solid fa-cloud-arrow-up text-3xl mb-1 animate-bounce"></i>
             <p class="font-semibold text-xs">Thả file Markdown, JSON hoặc TXT vào đây</p>
           </div>
         </div>
-        <textarea id="source-editor" rows="1" class="w-full p-3 font-mono text-xs leading-relaxed text-slate-800 bg-slate-50 border border-slate-200 rounded-lg resize-y outline-none focus:bg-white focus:ring-1 focus:ring-blue-500" placeholder="Dán nội dung Markdown cần dịch vào đây hoặc kéo thả file từ máy tính..." spellcheck="false"></textarea>
+        <textarea id="source-editor" rows="2" class="w-full p-2.5 font-mono text-xs leading-relaxed text-slate-800 bg-slate-50 border border-slate-200 rounded-xl resize-y outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all max-h-48" placeholder="Dán nội dung Markdown cần dịch vào đây hoặc kéo thả file từ máy tính..." spellcheck="false"></textarea>
       </div>
 
       <!-- Controls row: Languages, Style, and Start Button -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 items-end">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-center">
         <div>
-          <label for="select-source-lang" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-            <i class="fa-solid fa-globe text-slate-400 mr-1"></i> Ngôn ngữ nguồn
-          </label>
-          <select id="select-source-lang" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:bg-white outline-none">
-            <option value="auto" selected>Tự động nhận diện</option>
+          <select id="select-source-lang" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-2.5 py-1.5 focus:bg-white focus:border-blue-500 outline-none">
+            <option value="auto" selected>🌐 Tự nhận diện nguồn</option>
             <option value="en">Tiếng Anh (English)</option>
             <option value="vi">Tiếng Việt (Vietnamese)</option>
             <option value="zh">Tiếng Trung (Chinese)</option>
@@ -176,27 +176,21 @@
         </div>
 
         <div>
-          <label for="select-target-lang" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-            <i class="fa-solid fa-arrow-right text-slate-400 mr-1"></i> Ngôn ngữ đích
-          </label>
-          <select id="select-target-lang" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:bg-white outline-none">
-            <option value="vi" selected>Tiếng Việt (Vietnamese)</option>
-            <option value="en">Tiếng Anh (English)</option>
-            <option value="zh">Tiếng Trung (Chinese)</option>
-            <option value="ja">Tiếng Nhật (Japanese)</option>
-            <option value="ko">Tiếng Hàn (Korean)</option>
-            <option value="fr">Tiếng Pháp (French)</option>
-            <option value="de">Tiếng Đức (German)</option>
-            <option value="ru">Tiếng Nga (Russian)</option>
-            <option value="es">Tiếng Tây Ban Nha</option>
+          <select id="select-target-lang" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-2.5 py-1.5 focus:bg-white focus:border-blue-500 outline-none font-semibold">
+            <option value="vi" selected>🇻🇳 Sang Tiếng Việt</option>
+            <option value="en">🇬🇧 Sang Tiếng Anh</option>
+            <option value="zh">🇨🇳 Sang Tiếng Trung</option>
+            <option value="ja">🇯🇵 Sang Tiếng Nhật</option>
+            <option value="ko">🇰🇷 Sang Tiếng Hàn</option>
+            <option value="fr">🇫🇷 Sang Tiếng Pháp</option>
+            <option value="de">🇩🇪 Sang Tiếng Đức</option>
+            <option value="ru">🇷🇺 Sang Tiếng Nga</option>
+            <option value="es">🇪🇸 Sang Tiếng Tây Ban Nha</option>
           </select>
         </div>
 
         <div>
-          <label for="select-style" class="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-            <i class="fa-solid fa-wand-magic-sparkles text-slate-400 mr-1"></i> Kiểu dịch
-          </label>
-          <select id="select-style" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-lg px-2.5 py-1.5 focus:bg-white outline-none font-medium">
+          <select id="select-style" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-2.5 py-1.5 focus:bg-white focus:border-blue-500 outline-none font-medium">
             <option value="research" selected>🎓 Nghiên cứu / Bài báo khoa học</option>
             <option value="technical">⚙️ Chuẩn Kỹ thuật & CNTT</option>
             <option value="natural">🌿 Tự nhiên & Mượt mà</option>
@@ -207,7 +201,7 @@
         </div>
 
         <div>
-          <button id="btn-start-translate" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs rounded-lg px-3 py-2 flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/25 transition-all cursor-pointer">
+          <button id="btn-start-translate" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl px-3 py-2 flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all cursor-pointer">
             <i id="translate-icon" class="fa-solid fa-play text-[10px]"></i>
             <span id="translate-btn-text">Bắt đầu dịch AI</span>
             <span class="text-[9px] bg-white/20 px-1 py-0.2 rounded font-mono font-normal">Ctrl+↵</span>
@@ -216,21 +210,21 @@
       </div>
 
       <!-- Execution Mode: Background Execution & Email Delivery Bar -->
-      <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50/80 border border-slate-200/80 rounded-lg px-3 py-2 text-xs">
-        <div class="flex items-center gap-4 flex-wrap">
-          <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 select-none" title="Dù bạn tắt trình duyệt hoặc mất kết nối, máy chủ vẫn tiếp tục dịch trong nền và lưu trữ kết quả">
+      <div class="flex flex-wrap items-center justify-between gap-2.5 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs">
+        <div class="flex items-center gap-3.5 flex-wrap">
+          <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700 select-none" title="Chạy nền trên máy chủ, an toàn tuyệt đối ngay cả khi tắt máy">
             <input type="checkbox" id="chk-run-background" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
             <span class="flex items-center gap-1">
               <i class="fa-solid fa-server text-blue-600 text-[11px]"></i>
-              <span>Chạy nền (Treo máy)</span>
+              <span>Chạy nền</span>
             </span>
           </label>
 
-          <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 select-none" title="Tự động chạy Agent rà soát và chuẩn hóa cấu trúc định dạng bảng, công thức toán, code blocks sau khi dịch">
+          <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700 select-none" title="Tự động chạy AI rà soát và chuẩn hóa cấu trúc định dạng bảng, công thức toán, code blocks">
             <input type="checkbox" id="chk-enable-format-review" class="w-3.5 h-3.5 text-purple-600 rounded border-slate-300 focus:ring-purple-500" checked>
             <span class="flex items-center gap-1">
               <i class="fa-solid fa-wand-magic-sparkles text-purple-600 text-[11px]"></i>
-              <span>Agent rà soát định dạng</span>
+              <span>AI rà soát định dạng</span>
             </span>
           </label>
 
@@ -238,13 +232,13 @@
             <input type="checkbox" id="chk-enable-email" class="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
             <span class="flex items-center gap-1">
               <i class="fa-regular fa-paper-plane text-emerald-600 text-[11px]"></i>
-              <span>Gửi mail khi xong</span>
+              <span>Gửi email khi xong</span>
             </span>
           </label>
         </div>
 
         <div id="email-recipient-wrapper" class="hidden flex-1 sm:max-w-xs flex items-center gap-1.5">
-          <input type="email" id="input-recipient-email" class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-md px-2.5 py-1 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Nhập email nhận file...">
+          <input type="email" id="input-recipient-email" class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Nhập email nhận file...">
         </div>
       </div>
 
