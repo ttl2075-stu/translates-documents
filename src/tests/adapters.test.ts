@@ -318,6 +318,49 @@ test('OpenAIService - stripThinkingTags removes reasoning blocks from DeepSeek-R
   assert.equal(stripThinkingTags(normalText), 'Bản dịch thông thường không có think tag.');
 });
 
+test('MarkdownAdapter - Accumulates small paragraphs until maxChunkSize is reached', async () => {
+  const adapter = new MarkdownAdapter();
+  const { updateRuntimeConfig } = await import('../config.js');
+  updateRuntimeConfig({ maxChunkSize: 500 });
+
+  const shortParagraphsDoc = `# Tiêu đề chính
+
+Đoạn 1: Giới thiệu tổng quan nội dung ngắn.
+
+Đoạn 2: Tiếp tục bổ sung thêm thông tin chi tiết về hệ thống.
+
+Đoạn 3: Mô tả các thành phần cấu trúc và dữ liệu.
+
+Đoạn 4: Đoạn này có độ dài vừa phải để kết hợp cùng các đoạn trước.
+
+Đoạn 5: Đoạn cuối cùng tổng kết toàn bộ nội dung của bài viết.`;
+
+  const parsed = await adapter.parseAndMask(shortParagraphsDoc, {
+    sourceLang: 'vi',
+    targetLang: 'en',
+    style: 'technical',
+  });
+
+  // Total doc is ~350 chars < 500 maxChunkSize, so all 6 paragraphs should be accumulated into 1 chunk
+  assert.equal(parsed.chunks.length, 1);
+  assert.ok(parsed.chunks[0].maskedText.includes('# Tiêu đề chính'));
+  assert.ok(parsed.chunks[0].maskedText.includes('Đoạn 1:'));
+  assert.ok(parsed.chunks[0].maskedText.includes('Đoạn 5:'));
+
+  // Test with a smaller maxChunkSize to verify multi-chunk accumulation
+  updateRuntimeConfig({ maxChunkSize: 150 });
+  const parsedMulti = await adapter.parseAndMask(shortParagraphsDoc, {
+    sourceLang: 'vi',
+    targetLang: 'en',
+    style: 'technical',
+  });
+
+  // Should create multiple chunks, where each chunk has multiple paragraphs if they fit
+  assert.ok(parsedMulti.chunks.length > 1);
+  assert.ok(parsedMulti.chunks.length < 6); // Not 1 chunk per paragraph (6), but batched together (<6)
+});
+
+
 
 
 

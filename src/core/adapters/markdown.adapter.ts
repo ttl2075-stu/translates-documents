@@ -346,7 +346,7 @@ export class MarkdownAdapter implements DocumentAdapter {
     const rawBlocks = this.extractMarkdownBlocks(text);
     const normalizedBlocks: string[] = [];
 
-    // Expand any single block that exceeds maxChunkSize into clean structural sub-blocks
+    // 1. Expand any single block that exceeds maxChunkSize into clean structural sub-blocks
     for (const block of rawBlocks) {
       if (block.length <= maxChunkSize) {
         normalizedBlocks.push(block);
@@ -364,12 +364,42 @@ export class MarkdownAdapter implements DocumentAdapter {
       }
     }
 
-    // Each discrete structural block is mapped 1:1 to a ChunkItem to guarantee paragraph isolation
-    const chunks: ChunkItem[] = normalizedBlocks.map((block, idx) => ({
-      id: idx,
-      originalText: block,
-      maskedText: block,
-    }));
+    // 2. Greedily accumulate multiple paragraphs/blocks into batches up to maxChunkSize
+    // while strictly respecting block boundaries (\n\n)
+    const chunks: ChunkItem[] = [];
+    let currentBatch: string[] = [];
+    let currentBatchLen = 0;
+    let chunkId = 0;
+
+    const flushBatch = () => {
+      if (currentBatch.length > 0) {
+        const joined = currentBatch.join('\n\n');
+        chunks.push({
+          id: chunkId++,
+          originalText: joined,
+          maskedText: joined,
+        });
+        currentBatch = [];
+        currentBatchLen = 0;
+      }
+    };
+
+    for (const block of normalizedBlocks) {
+      const trimmed = block.trim();
+      if (!trimmed) continue;
+
+      const addedLen = currentBatch.length > 0 ? trimmed.length + 2 : trimmed.length;
+
+      // If adding this block exceeds maxChunkSize and currentBatch is not empty, flush current batch
+      if (currentBatch.length > 0 && (currentBatchLen + addedLen) > maxChunkSize) {
+        flushBatch();
+      }
+
+      currentBatch.push(trimmed);
+      currentBatchLen += (currentBatch.length > 1 ? 2 : 0) + trimmed.length;
+    }
+
+    flushBatch();
 
     return chunks.length > 0 ? chunks : [{ id: 0, originalText: text, maskedText: text }];
   }

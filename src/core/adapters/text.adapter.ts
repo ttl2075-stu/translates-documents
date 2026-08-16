@@ -36,11 +36,39 @@ export class TextAdapter implements DocumentAdapter {
       }
     }
 
-    const chunks: ChunkItem[] = normalizedBlocks.map((block, idx) => ({
-      id: idx,
-      originalText: block,
-      maskedText: block,
-    }));
+    const chunks: ChunkItem[] = [];
+    let currentBatch: string[] = [];
+    let currentBatchLen = 0;
+    let chunkId = 0;
+
+    const flushBatch = () => {
+      if (currentBatch.length > 0) {
+        const joined = currentBatch.join('\n\n');
+        chunks.push({
+          id: chunkId++,
+          originalText: joined,
+          maskedText: joined,
+        });
+        currentBatch = [];
+        currentBatchLen = 0;
+      }
+    };
+
+    for (const block of normalizedBlocks) {
+      const trimmed = block.trim();
+      if (!trimmed) continue;
+
+      const addedLen = currentBatch.length > 0 ? trimmed.length + 2 : trimmed.length;
+
+      if (currentBatch.length > 0 && (currentBatchLen + addedLen) > config.maxChunkSize) {
+        flushBatch();
+      }
+
+      currentBatch.push(trimmed);
+      currentBatchLen += (currentBatch.length > 1 ? 2 : 0) + trimmed.length;
+    }
+
+    flushBatch();
 
     return {
       chunks: chunks.length > 0 ? chunks : [{ id: 0, originalText: content, maskedText: content }],
