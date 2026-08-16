@@ -134,6 +134,41 @@ app.post('/api/translate', async (req, res) => {
   }
 });
 
+// 7.1. Targeted Text Refinement / Prompt Edit API
+app.post('/api/refine', async (req, res) => {
+  try {
+    const { selectedText, instruction, contextBefore, contextAfter, options, apiOverride } = req.body;
+
+    if (!selectedText || typeof selectedText !== 'string' || selectedText.trim().length === 0) {
+      return res.status(400).json({ error: 'Nội dung bôi chọn không được để trống.' });
+    }
+
+    if (!instruction || typeof instruction !== 'string' || instruction.trim().length === 0) {
+      return res.status(400).json({ error: 'Yêu cầu prompt chỉnh sửa không được để trống.' });
+    }
+
+    const refinedText = await defaultOpenAIService.refineText(
+      {
+        selectedText,
+        instruction,
+        contextBefore: contextBefore || '',
+        contextAfter: contextAfter || '',
+        sourceLang: options?.sourceLang || 'auto',
+        targetLang: options?.targetLang || 'vi',
+        style: options?.style || 'technical',
+      },
+      apiOverride
+    );
+
+    res.json({
+      success: true,
+      refinedText,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // 8. Resilient SSE Streaming Translation API with Keep-alive & Abort handling
 app.post('/api/translate-stream', async (req, res) => {
   const { content, filename = 'document.md', adapterId, options } = req.body;

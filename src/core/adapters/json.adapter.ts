@@ -1,4 +1,5 @@
 import { ChunkItem, DocumentAdapter, DocumentParseResult, TranslationOptions } from '../interfaces.js';
+import { config } from '../../config.js';
 
 interface JsonNode {
   path: string[];
@@ -35,23 +36,50 @@ export class JsonAdapter implements DocumentAdapter {
 
     traverse(parsed, []);
 
-    // Group translatable string values into batches
+    // Group translatable string values into batches based on configured character budget & max item count
     const chunks: ChunkItem[] = [];
-    const batchSize = 20;
+    const maxBatchChars = config.maxChunkSize || 1200;
+    const maxItemsPerBatch = 25;
 
-    for (let i = 0; i < nodes.length; i += batchSize) {
-      const batch = nodes.slice(i, i + batchSize);
-      const maskedText = batch
-        .map((item, idx) => `[ITEM_${i + idx}]: ${item.originalValue}`)
-        .join('\n');
+    let currentBatch: { node: JsonNode; globalIndex: number }[] = [];
+    let currentBatchChars = 0;
+    let chunkId = 0;
 
-      chunks.push({
-        id: Math.floor(i / batchSize),
-        originalText: maskedText,
-        maskedText,
-        metadata: { startIndex: i, count: batch.length },
-      });
-    }
+    const flushBatch = () => {
+      if (currentBatch.length > 0) {
+        const maskedText = currentBatch
+          .map((item) => `[ITEM_${item.globalIndex}]: ${item.node.originalValue}`)
+          .join('\n');
+
+        chunks.push({
+          id: chunkId++,
+          originalText: maskedText,
+          maskedText,
+          metadata: {
+            startIndex: currentBatch[0].globalIndex,
+            count: currentBatch.length,
+          },
+        });
+
+        currentBatch = [];
+        currentBatchChars = 0;
+      }
+    };
+
+    nodes.forEach((node, globalIndex) => {
+      const itemLen = node.originalValue.length + 15;
+      if (
+        currentBatch.length > 0 &&
+        (currentBatchChars + itemLen > maxBatchChars || currentBatch.length >= maxItemsPerBatch)
+      ) {
+        flushBatch();
+      }
+
+      currentBatch.push({ node, globalIndex });
+      currentBatchChars += itemLen;
+    });
+
+    flushBatch();
 
     return {
       chunks,

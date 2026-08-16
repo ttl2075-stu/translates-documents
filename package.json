@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/server/index.js",
     "dev": "tsx watch src/server/index.ts",
-    "test": "node --test"
+    "test": "tsc && node --test dist/tests/*.test.js"
   },
   "keywords": ["ai", "translator", "markdown", "openai", "structure-preserving"],
   "author": "",

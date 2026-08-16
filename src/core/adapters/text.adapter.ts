@@ -8,13 +8,40 @@ export class TextAdapter implements DocumentAdapter {
   readonly description = 'Dịch văn bản thuần túy theo đoạn, bảo tồn ngắt dòng và thụt lề';
 
   async parseAndMask(content: string, _options: TranslationOptions): Promise<DocumentParseResult> {
-    const paragraphs = content.split(/\n\n+/);
+    const rawParagraphs = content.split(/\n\n+/);
+    const normalizedBlocks: string[] = [];
+
+    for (const para of rawParagraphs) {
+      const trimmed = para.trim();
+      if (!trimmed) continue;
+
+      if (trimmed.length <= config.maxChunkSize) {
+        normalizedBlocks.push(trimmed);
+      } else {
+        // Split long paragraph at sentence boundaries
+        const sentenceRegex = /([^.!?。！？\n]+[.!?。！？\n]+(?:\s+|$)|[^\n]+\n*)/g;
+        const matches = trimmed.match(sentenceRegex) || [trimmed];
+        let currentSub = '';
+
+        for (const sentence of matches) {
+          if (currentSub.length > 0 && (currentSub.length + sentence.length) > config.maxChunkSize) {
+            normalizedBlocks.push(currentSub.trim());
+            currentSub = '';
+          }
+          currentSub += (currentSub.length > 0 ? ' ' : '') + sentence.trim();
+        }
+        if (currentSub.trim().length > 0) {
+          normalizedBlocks.push(currentSub.trim());
+        }
+      }
+    }
+
     const chunks: ChunkItem[] = [];
     let currentText = '';
     let chunkId = 0;
 
-    for (const para of paragraphs) {
-      if (currentText.length > 0 && currentText.length + para.length > config.maxChunkSize) {
+    for (const block of normalizedBlocks) {
+      if (currentText.length > 0 && (currentText.length + block.length + 2) > config.maxChunkSize) {
         chunks.push({
           id: chunkId++,
           originalText: currentText.trim(),
@@ -22,7 +49,7 @@ export class TextAdapter implements DocumentAdapter {
         });
         currentText = '';
       }
-      currentText += (currentText.length > 0 ? '\n\n' : '') + para;
+      currentText += (currentText.length > 0 ? '\n\n' : '') + block;
     }
 
     if (currentText.trim().length > 0) {
@@ -34,7 +61,7 @@ export class TextAdapter implements DocumentAdapter {
     }
 
     return {
-      chunks,
+      chunks: chunks.length > 0 ? chunks : [{ id: 0, originalText: content, maskedText: content }],
       state: {},
     };
   }

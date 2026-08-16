@@ -245,6 +245,11 @@
             </button>
             <button id="tab-diff" class="px-2.5 py-0.5 rounded-md font-medium text-slate-500 hover:text-slate-800 transition-all text-xs">Diff</button>
           </div>
+          <!-- AI Selection Refine Button -->
+          <button id="btn-open-refine-modal" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-md transition-all shadow-xs" title="Bôi chọn nội dung cần sửa trong tab Chỉnh sửa rồi bấm nút này (Ctrl+K)">
+            <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
+            <span>Sửa bằng AI</span>
+          </button>
         </div>
         
         <!-- Output Action Tools -->
@@ -380,6 +385,89 @@
       </div>
     </main>
 
+  </div>
+
+  <!-- Floating Selection Quick AI Button -->
+  <button id="floating-refine-btn" class="hidden fixed z-40 px-2.5 py-1 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-lg transition-all flex items-center gap-1.5 animate-fade-in" title="Sửa đoạn đang bôi chọn bằng AI Prompt">
+    <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+    <span>Sửa bằng AI</span>
+  </button>
+
+  <!-- AI Prompt Edit / Refine Modal -->
+  <div id="refine-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 hidden animate-fade-in">
+    <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col animate-scale-up">
+      <!-- Header -->
+      <div class="px-5 py-3.5 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+            <i class="fa-solid fa-wand-magic-sparkles text-sm"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-slate-800">Chỉnh sửa đoạn chọn bằng AI</h3>
+            <p class="text-[11px] text-slate-500">Sửa lỗi định dạng Markdown, căn bảng, sửa danh sách hoặc trau chuốt lại câu từ</p>
+          </div>
+        </div>
+        <button id="btn-close-refine-modal" class="text-slate-400 hover:text-slate-600 p-1 text-lg font-bold">&times;</button>
+      </div>
+
+      <!-- Body -->
+      <div class="p-5 space-y-3.5">
+        <!-- Selected text preview -->
+        <div>
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-semibold text-slate-600">Đoạn văn bản đang chọn:</span>
+            <span id="refine-selection-length" class="text-[11px] font-mono text-slate-400">0 ký tự</span>
+          </div>
+          <div id="refine-selection-preview" class="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-700 max-h-28 overflow-y-auto whitespace-pre-wrap select-all"></div>
+        </div>
+
+        <!-- Prompt input -->
+        <div>
+          <label for="refine-prompt-input" class="block text-xs font-semibold text-slate-700 mb-1">
+            Yêu cầu chỉnh sửa (Prompt):
+          </label>
+          <textarea id="refine-prompt-input" rows="2" class="w-full p-2.5 text-xs bg-white border border-slate-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none resize-none transition-all placeholder:text-slate-400" placeholder="Ví dụ: Sửa lại thành bảng Markdown chuẩn với các cột thẳng hàng, Dịch lại tự nhiên hơn..."></textarea>
+        </div>
+
+        <!-- Quick Presets -->
+        <div>
+          <span class="text-[11px] font-medium text-slate-500 block mb-1.5">Gợi ý prompt nhanh:</span>
+          <div class="flex flex-wrap gap-1.5">
+            <button type="button" class="btn-refine-preset px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200 rounded-md text-[11px] text-slate-600 transition-colors" data-prompt="Sửa lại thành bảng Markdown chuẩn với đầy đủ hàng và các cột thẳng hàng">
+              📊 Sửa định dạng bảng
+            </button>
+            <button type="button" class="btn-refine-preset px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200 rounded-md text-[11px] text-slate-600 transition-colors" data-prompt="Định dạng lại thành danh sách Markdown chuẩn, căn chỉnh thụt lề cấp con hợp lý">
+              📝 Sửa định dạng danh sách
+            </button>
+            <button type="button" class="btn-refine-preset px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200 rounded-md text-[11px] text-slate-600 transition-colors" data-prompt="Dịch lại đoạn này mượt mà, tự nhiên và chuẩn văn phong học thuật/kỹ thuật hơn">
+              🔄 Dịch lại mượt mà hơn
+            </button>
+            <button type="button" class="btn-refine-preset px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200 rounded-md text-[11px] text-slate-600 transition-colors" data-prompt="Sửa lỗi chính tả, dấu câu và ngữ pháp tiếng Việt">
+              🔤 Sửa lỗi chính tả & ngữ pháp
+            </button>
+            <button type="button" class="btn-refine-preset px-2 py-1 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 border border-slate-200 rounded-md text-[11px] text-slate-600 transition-colors" data-prompt="Giữ nguyên các thuật ngữ tiếng Anh chuyên ngành và công thức toán học">
+              🏷️ Giữ nguyên thuật ngữ
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-5 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <span class="text-[11px] text-slate-400 flex items-center gap-1">
+          <kbd class="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px]">Esc</kbd> để đóng &bull; <kbd class="px-1.5 py-0.5 bg-white border border-slate-300 rounded font-mono text-[10px]">Ctrl+Enter</kbd> để chạy
+        </span>
+        <div class="flex items-center gap-2">
+          <button id="btn-cancel-refine" class="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors">
+            Hủy
+          </button>
+          <button id="btn-execute-refine" class="px-4 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all flex items-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+            <span id="lbl-execute-refine">Áp dụng chỉnh sửa</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Toast Notification -->

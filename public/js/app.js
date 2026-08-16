@@ -153,6 +153,24 @@ const tabRaw = document.getElementById('tab-raw');
 const tabDiff = document.getElementById('tab-diff');
 const toastEl = document.getElementById('toast');
 
+// AI Refine Modal & Floating Selection Elements
+const btnOpenRefineModal = document.getElementById('btn-open-refine-modal');
+const floatingRefineBtn = document.getElementById('floating-refine-btn');
+const refineModal = document.getElementById('refine-modal');
+const btnCloseRefineModal = document.getElementById('btn-close-refine-modal');
+const btnCancelRefine = document.getElementById('btn-cancel-refine');
+const btnExecuteRefine = document.getElementById('btn-execute-refine');
+const refineSelectionPreview = document.getElementById('refine-selection-preview');
+const refineSelectionLength = document.getElementById('refine-selection-length');
+const refinePromptInput = document.getElementById('refine-prompt-input');
+const lblExecuteRefine = document.getElementById('lbl-execute-refine');
+
+let currentSelection = {
+  text: '',
+  start: 0,
+  end: 0,
+};
+
 // -------------------------------------------------------------
 // Initialization
 // -------------------------------------------------------------
@@ -176,6 +194,45 @@ function setupEventListeners() {
     updateTargetStats(currentTranslatedText.length, 'Đã chỉnh sửa ✏️');
     renderTargetMarkdown(currentTranslatedText, true);
     renderDiffView(sourceEditor.value, currentTranslatedText);
+  });
+
+  // Track selection in targetEditor
+  targetEditor.addEventListener('select', handleEditorSelection);
+  targetEditor.addEventListener('mouseup', handleEditorSelection);
+  targetEditor.addEventListener('keyup', handleEditorSelection);
+
+  // Track selection in targetPreview
+  targetPreview.addEventListener('mouseup', handlePreviewSelection);
+
+  // AI Refine Modal Triggers
+  btnOpenRefineModal.addEventListener('click', () => {
+    if (tabRaw.classList.contains('text-slate-500')) {
+      // If currently in preview mode, switch to raw or keep selection
+      openRefineModal();
+    } else {
+      openRefineModal();
+    }
+  });
+
+  if (floatingRefineBtn) {
+    floatingRefineBtn.addEventListener('click', openRefineModal);
+  }
+
+  btnCloseRefineModal.addEventListener('click', closeRefineModal);
+  btnCancelRefine.addEventListener('click', closeRefineModal);
+  btnExecuteRefine.addEventListener('click', executeRefine);
+
+  // Quick Preset Prompt Chips
+  document.querySelectorAll('.btn-refine-preset').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      refinePromptInput.value = btn.dataset.prompt;
+      refinePromptInput.focus();
+    });
+  });
+
+  // Close modals on clicking outside
+  refineModal.addEventListener('click', (e) => {
+    if (e.target === refineModal) closeRefineModal();
   });
 
   // Toggle Input Section
@@ -259,15 +316,24 @@ function setupEventListeners() {
   btnToggleToc.addEventListener('click', toggleToc);
   btnCloseToc.addEventListener('click', () => setTocState(false));
 
-  // Keyboard Shortcuts: Ctrl+Enter to translate, Escape to exit fullscreen
+  // Keyboard Shortcuts: Ctrl+Enter to translate or refine, Ctrl+K for AI Refine, Escape to exit
   window.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
-      startTranslation();
+      openRefineModal();
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      if (refineModal && !refineModal.classList.contains('hidden')) {
+        executeRefine();
+      } else {
+        startTranslation();
+      }
     } else if (e.key === 'Escape') {
+      if (refineModal && !refineModal.classList.contains('hidden')) closeRefineModal();
       if (isFullscreen) toggleFullscreen();
       if (isTocOpen) setTocState(false);
       formatMenuPopover.classList.add('hidden');
+      if (floatingRefineBtn) floatingRefineBtn.classList.add('hidden');
     }
   });
 
@@ -992,3 +1058,176 @@ function showToast(message, isError = false) {
     toastEl.classList.add('hidden');
   }, 3500);
 }
+
+// -------------------------------------------------------------
+// AI Prompt Edit & Refine Selection Logic
+// -------------------------------------------------------------
+function handleEditorSelection(e) {
+  const start = targetEditor.selectionStart;
+  const end = targetEditor.selectionEnd;
+  const selectedText = targetEditor.value.substring(start, end);
+
+  if (selectedText && selectedText.trim().length > 0) {
+    currentSelection = {
+      text: selectedText,
+      start,
+      end,
+    };
+    positionFloatingButton(e);
+  } else {
+    if (floatingRefineBtn) floatingRefineBtn.classList.add('hidden');
+  }
+}
+
+function handlePreviewSelection(e) {
+  const sel = window.getSelection();
+  const text = sel ? sel.toString().trim() : '';
+
+  if (text.length > 0) {
+    const fullText = targetEditor.value;
+    const idx = fullText.indexOf(text);
+    if (idx !== -1) {
+      currentSelection = {
+        text,
+        start: idx,
+        end: idx + text.length,
+      };
+    } else {
+      currentSelection = {
+        text,
+        start: 0,
+        end: 0,
+      };
+    }
+    positionFloatingButton(e);
+  } else {
+    if (floatingRefineBtn) floatingRefineBtn.classList.add('hidden');
+  }
+}
+
+function positionFloatingButton(e) {
+  if (!floatingRefineBtn) return;
+  const x = e && e.clientX ? e.clientX : window.innerWidth / 2;
+  const y = e && e.clientY ? e.clientY : window.innerHeight / 2;
+
+  const posX = Math.min(window.innerWidth - 150, Math.max(20, x + 10));
+  const posY = Math.min(window.innerHeight - 50, Math.max(20, y - 45));
+
+  floatingRefineBtn.style.left = `${posX}px`;
+  floatingRefineBtn.style.top = `${posY}px`;
+  floatingRefineBtn.classList.remove('hidden');
+}
+
+function openRefineModal() {
+  // Check if text is currently highlighted in targetEditor
+  const start = targetEditor.selectionStart;
+  const end = targetEditor.selectionEnd;
+  const activeSelection = targetEditor.value.substring(start, end);
+
+  if (activeSelection && activeSelection.trim().length > 0) {
+    currentSelection = {
+      text: activeSelection,
+      start,
+      end,
+    };
+  }
+
+  // Fallback to existing selection or whole content
+  if (!currentSelection.text || currentSelection.text.trim().length === 0) {
+    if (targetEditor.value && targetEditor.value.trim().length > 0) {
+      currentSelection = {
+        text: targetEditor.value,
+        start: 0,
+        end: targetEditor.value.length,
+      };
+    } else {
+      showToast('Vui lòng bôi chọn đoạn văn bản cần chỉnh sửa!', true);
+      return;
+    }
+  }
+
+  refineSelectionPreview.textContent = currentSelection.text;
+  refineSelectionLength.textContent = `${currentSelection.text.length.toLocaleString()} ký tự`;
+  refineModal.classList.remove('hidden');
+  if (floatingRefineBtn) floatingRefineBtn.classList.add('hidden');
+  refinePromptInput.focus();
+}
+
+function closeRefineModal() {
+  refineModal.classList.add('hidden');
+}
+
+async function executeRefine() {
+  const instruction = refinePromptInput.value.trim();
+  if (!instruction) {
+    showToast('Vui lòng nhập yêu cầu chỉnh sửa hoặc chọn gợi ý nhanh!', true);
+    refinePromptInput.focus();
+    return;
+  }
+
+  if (!currentSelection.text) {
+    showToast('Không tìm thấy nội dung đã chọn!', true);
+    return;
+  }
+
+  // Set loading state
+  btnExecuteRefine.disabled = true;
+  lblExecuteRefine.textContent = 'Đang sửa bằng AI...';
+  btnExecuteRefine.classList.add('opacity-75', 'cursor-not-allowed');
+
+  try {
+    const fullContent = targetEditor.value;
+    const contextBefore = fullContent.slice(Math.max(0, currentSelection.start - 400), currentSelection.start);
+    const contextAfter = fullContent.slice(currentSelection.end, currentSelection.end + 400);
+
+    const response = await fetch('/api/refine', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        selectedText: currentSelection.text,
+        instruction,
+        contextBefore,
+        contextAfter,
+        options: {
+          sourceLang: selectSourceLang.value,
+          targetLang: selectTargetLang.value,
+          style: selectStyle.value,
+        },
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data.success) {
+      throw new Error(data.error || 'Lỗi khi gọi API chỉnh sửa.');
+    }
+
+    const replacement = data.refinedText;
+
+    // Apply replacement to editor content
+    const beforeText = fullContent.substring(0, currentSelection.start);
+    const afterText = fullContent.substring(currentSelection.end);
+    const updatedFullText = beforeText + replacement + afterText;
+
+    targetEditor.value = updatedFullText;
+    currentTranslatedText = updatedFullText;
+
+    // Update target stats & re-render preview/diff
+    updateTargetStats(currentTranslatedText.length, 'Đã sửa bằng AI ✨');
+    renderTargetMarkdown(currentTranslatedText, true);
+    renderDiffView(sourceEditor.value, currentTranslatedText);
+
+    closeRefineModal();
+    setTargetViewMode('raw'); // Switch to raw editor to highlight the change
+    targetEditor.focus();
+    targetEditor.setSelectionRange(currentSelection.start, currentSelection.start + replacement.length);
+
+    showToast('✨ Đã sửa đoạn chọn bằng AI thành công!');
+  } catch (err) {
+    showToast('Lỗi chỉnh sửa: ' + err.message, true);
+  } finally {
+    btnExecuteRefine.disabled = false;
+    lblExecuteRefine.textContent = 'Áp dụng chỉnh sửa';
+    btnExecuteRefine.classList.remove('opacity-75', 'cursor-not-allowed');
+  }
+}
+

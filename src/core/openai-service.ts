@@ -123,6 +123,78 @@ export class OpenAIService {
     return this.translateChunkStream(text, 0, options, undefined, clientConfig);
   }
 
+  /**
+   * Refines or fixes selected text based on user prompt instruction & surrounding context
+   */
+  async refineText(
+    options: {
+      selectedText: string;
+      instruction: string;
+      contextBefore?: string;
+      contextAfter?: string;
+      sourceLang?: string;
+      targetLang?: string;
+      style?: string;
+    },
+    clientConfig?: { apiKey?: string; baseUrl?: string; model?: string }
+  ): Promise<string> {
+    const {
+      selectedText,
+      instruction,
+      contextBefore = '',
+      contextAfter = '',
+      targetLang = 'vi',
+      style = 'technical',
+    } = options;
+
+    if (!selectedText || selectedText.trim().length === 0) {
+      throw new Error('Nội dung bôi chọn không được để trống.');
+    }
+
+    if (!instruction || instruction.trim().length === 0) {
+      throw new Error('Yêu cầu chỉnh sửa (prompt) không được để trống.');
+    }
+
+    const systemPrompt = `You are an expert document editor, Markdown formatting fixer, and technical translator.
+Your task is to refine, fix, reformat, or re-translate the [SELECTED TEXT] according to the user's specific instruction.
+
+CRITICAL RULES:
+1. Follow the user's instruction precisely (e.g., fix broken markdown tables/columns, correct list indentation, fix LaTeX math, improve phrasing, correct spelling, adjust tone).
+2. Output in ${targetLang} language with a ${style} style unless the instruction specifies otherwise.
+3. Preserve valid Markdown formatting syntax (pipes for tables, dashes for lists, backticks for code, math dollar signs).
+4. Preserve any placeholder tokens like [[_MASK_..._]] exactly without alteration.
+5. Return ONLY the replacement text for [SELECTED TEXT]. Do NOT include conversational filler, explanations, markdown commentary, or extra wrapping codeblocks unless the selection itself was a codeblock.`;
+
+    let userPrompt = '';
+    if (contextBefore.trim().length > 0 || contextAfter.trim().length > 0) {
+      userPrompt += `[SURROUNDING CONTEXT]\n...${contextBefore.slice(-300)} [SELECTED_START] >>>\n`;
+    }
+    userPrompt += `[SELECTED TEXT TO EDIT]:\n${selectedText}\n`;
+    if (contextBefore.trim().length > 0 || contextAfter.trim().length > 0) {
+      userPrompt += `<<< [SELECTED_END] ${contextAfter.slice(0, 300)}...\n\n`;
+    }
+    userPrompt += `[USER INSTRUCTION]:\n${instruction}\n\nOutput only the corrected replacement text:`;
+
+    const client = this.getClient(clientConfig?.apiKey, clientConfig?.baseUrl);
+    const model = clientConfig?.model || config.openaiModel;
+
+    try {
+      const res = await client.chat.completions.create({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.2,
+      });
+
+      return res.choices[0]?.message?.content?.trim() || selectedText;
+    } catch (error: any) {
+      const msg = error?.message || 'Lỗi khi gọi API chỉnh sửa';
+      throw new Error(`Lỗi chỉnh sửa AI (${model}): ${msg}`);
+    }
+  }
+
   async testConnection(customConfig?: { apiKey?: string; baseUrl?: string; model?: string }): Promise<{ success: boolean; message: string; models?: string[] }> {
     try {
       const client = this.getClient(customConfig?.apiKey, customConfig?.baseUrl);

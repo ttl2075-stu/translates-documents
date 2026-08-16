@@ -113,6 +113,229 @@ export class MarkdownAdapter implements DocumentAdapter {
     return fullTranslated;
   }
 
+  private extractMarkdownBlocks(text: string): string[] {
+    const lines = text.split(/\r?\n/);
+    const blocks: string[] = [];
+    let currentBlockLines: string[] = [];
+    let currentBlockType: 'none' | 'table' | 'list' | 'blockquote' | 'paragraph' = 'none';
+
+    const isTableLine = (line: string): boolean => {
+      const trimmed = line.trim();
+      return trimmed.startsWith('|') || (trimmed.includes('|') && /\|.*\|/.test(trimmed));
+    };
+
+    const isListLine = (line: string): boolean => {
+      return /^\s*(?:[-*+]|\d+[\.\)])\s+/.test(line);
+    };
+
+    const isListContinuationLine = (line: string): boolean => {
+      return /^\s{2,}\S+/.test(line) || /^\t+\S+/.test(line);
+    };
+
+    const isBlockquoteLine = (line: string): boolean => {
+      return /^\s*>/.test(line);
+    };
+
+    const isHeadingLine = (line: string): boolean => {
+      return /^\s*#{1,6}\s+/.test(line);
+    };
+
+    const isHrLine = (line: string): boolean => {
+      return /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line);
+    };
+
+    const isMaskBlockLine = (line: string): boolean => {
+      return /^\s*\[\[_MASK_(?:FRONTMATTER|FENCE_CODE|MATH_BLOCK|HTML_TAG)_\d+_\]\]\s*$/.test(line.trim());
+    };
+
+    const flushBlock = () => {
+      if (currentBlockLines.length > 0) {
+        const content = currentBlockLines.join('\n').trim();
+        if (content.length > 0) {
+          blocks.push(content);
+        }
+        currentBlockLines = [];
+        currentBlockType = 'none';
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      // Blank line indicates a boundary between blocks
+      if (trimmed.length === 0) {
+        flushBlock();
+        continue;
+      }
+
+      // Standalone Masked Block
+      if (isMaskBlockLine(line)) {
+        flushBlock();
+        blocks.push(trimmed);
+        continue;
+      }
+
+      // Heading is an independent block
+      if (isHeadingLine(line)) {
+        flushBlock();
+        blocks.push(trimmed);
+        continue;
+      }
+
+      // Horizontal Rule
+      if (isHrLine(line)) {
+        flushBlock();
+        blocks.push(trimmed);
+        continue;
+      }
+
+      // Table line
+      if (isTableLine(line)) {
+        if (currentBlockType !== 'table') {
+          flushBlock();
+          currentBlockType = 'table';
+        }
+        currentBlockLines.push(line);
+        continue;
+      }
+
+      // List item or continuation line
+      if (isListLine(line) || (currentBlockType === 'list' && isListContinuationLine(line))) {
+        if (currentBlockType !== 'list') {
+          flushBlock();
+          currentBlockType = 'list';
+        }
+        currentBlockLines.push(line);
+        continue;
+      }
+
+      // Blockquote line
+      if (isBlockquoteLine(line)) {
+        if (currentBlockType !== 'blockquote') {
+          flushBlock();
+          currentBlockType = 'blockquote';
+        }
+        currentBlockLines.push(line);
+        continue;
+      }
+
+      // Paragraph line
+      if (currentBlockType !== 'paragraph') {
+        flushBlock();
+        currentBlockType = 'paragraph';
+      }
+      currentBlockLines.push(line);
+    }
+
+    flushBlock();
+    return blocks;
+  }
+
+  private splitLargeTable(tableText: string, maxChunkSize: number): string[] {
+    const lines = tableText.split('\n');
+    if (lines.length <= 2) return [tableText];
+
+    let sepIdx = 1;
+    for (let i = 0; i < Math.min(3, lines.length); i++) {
+      if (/^\s*\|?[\s:-|-]+\|?\s*$/.test(lines[i]) && lines[i].includes('-')) {
+        sepIdx = i;
+        break;
+      }
+    }
+
+    const header = lines.slice(0, sepIdx + 1).join('\n');
+    const dataRows = lines.slice(sepIdx + 1);
+    const subTables: string[] = [];
+    let currentRows: string[] = [];
+    let currentLen = header.length;
+
+    for (const row of dataRows) {
+      if (currentRows.length > 0 && (currentLen + row.length + 1) > maxChunkSize) {
+        subTables.push(`${header}\n${currentRows.join('\n')}`);
+        currentRows = [];
+        currentLen = header.length;
+      }
+      currentRows.push(row);
+      currentLen += row.length + 1;
+    }
+
+    if (currentRows.length > 0) {
+      subTables.push(`${header}\n${currentRows.join('\n')}`);
+    }
+
+    return subTables.length > 0 ? subTables : [tableText];
+  }
+
+  private splitLargeList(listText: string, maxChunkSize: number): string[] {
+    const items: string[] = [];
+    const lines = listText.split('\n');
+    let currentItemLines: string[] = [];
+
+    for (const line of lines) {
+      if (/^\s*(?:[-*+]|\d+[\.\)])\s+/.test(line) && !/^\s{2,}|\t+/.test(line)) {
+        if (currentItemLines.length > 0) {
+          items.push(currentItemLines.join('\n'));
+          currentItemLines = [];
+        }
+      }
+      currentItemLines.push(line);
+    }
+    if (currentItemLines.length > 0) {
+      items.push(currentItemLines.join('\n'));
+    }
+
+    const subLists: string[] = [];
+    let currentListText = '';
+
+    for (const item of items) {
+      if (currentListText.length > 0 && (currentListText.length + item.length + 1) > maxChunkSize) {
+        subLists.push(currentListText.trim());
+        currentListText = '';
+      }
+      currentListText += (currentListText.length > 0 ? '\n' : '') + item;
+    }
+    if (currentListText.trim().length > 0) {
+      subLists.push(currentListText.trim());
+    }
+
+    return subLists.length > 0 ? subLists : [listText];
+  }
+
+  private splitLargeParagraph(paraText: string, maxChunkSize: number): string[] {
+    const sentenceRegex = /([^.!?。！？\n]+[.!?。！？\n]+(?:\s+|$)|[^\n]+\n*)/g;
+    const matches = paraText.match(sentenceRegex) || [paraText];
+
+    const subParas: string[] = [];
+    let currentParaText = '';
+
+    for (const sentence of matches) {
+      if (currentParaText.length > 0 && (currentParaText.length + sentence.length) > maxChunkSize) {
+        subParas.push(currentParaText.trim());
+        currentParaText = '';
+      }
+
+      if (sentence.length > maxChunkSize) {
+        const words = sentence.split(/\s+/);
+        for (const word of words) {
+          if (currentParaText.length > 0 && (currentParaText.length + word.length + 1) > maxChunkSize) {
+            subParas.push(currentParaText.trim());
+            currentParaText = '';
+          }
+          currentParaText += (currentParaText.length > 0 ? ' ' : '') + word;
+        }
+      } else {
+        currentParaText += (currentParaText.length > 0 ? ' ' : '') + sentence.trim();
+      }
+    }
+
+    if (currentParaText.trim().length > 0) {
+      subParas.push(currentParaText.trim());
+    }
+
+    return subParas.length > 0 ? subParas : [paraText];
+  }
+
   private splitIntoSemanticChunks(text: string, maxChunkSize: number): ChunkItem[] {
     if (text.length <= maxChunkSize) {
       return [
@@ -124,16 +347,35 @@ export class MarkdownAdapter implements DocumentAdapter {
       ];
     }
 
-    // Split along major structural boundaries (headings and double newlines)
-    const paragraphs = text.split(/\n\n+/);
+    const rawBlocks = this.extractMarkdownBlocks(text);
+    const normalizedBlocks: string[] = [];
+
+    // Expand any single block that exceeds maxChunkSize into clean structural sub-blocks
+    for (const block of rawBlocks) {
+      if (block.length <= maxChunkSize) {
+        normalizedBlocks.push(block);
+      } else {
+        const isTable = block.includes('\n') && (block.startsWith('|') || block.includes('|---') || /\|.*\|/.test(block));
+        const isList = /^\s*(?:[-*+]|\d+[\.\)])\s+/m.test(block);
+
+        if (isTable) {
+          normalizedBlocks.push(...this.splitLargeTable(block, maxChunkSize));
+        } else if (isList) {
+          normalizedBlocks.push(...this.splitLargeList(block, maxChunkSize));
+        } else {
+          normalizedBlocks.push(...this.splitLargeParagraph(block, maxChunkSize));
+        }
+      }
+    }
+
+    // Accumulate normalized blocks into chunks cleanly at block boundaries
     const chunks: ChunkItem[] = [];
     let currentChunkText = '';
     let chunkId = 0;
 
-    for (let i = 0; i < paragraphs.length; i++) {
-      const para = paragraphs[i];
-
-      if (currentChunkText.length > 0 && (currentChunkText.length + para.length + 2) > maxChunkSize) {
+    for (const block of normalizedBlocks) {
+      // If adding this block exceeds maxChunkSize, cut the batch cleanly at the end of the previous block
+      if (currentChunkText.length > 0 && (currentChunkText.length + block.length + 2) > maxChunkSize) {
         chunks.push({
           id: chunkId++,
           originalText: currentChunkText.trim(),
@@ -142,22 +384,7 @@ export class MarkdownAdapter implements DocumentAdapter {
         currentChunkText = '';
       }
 
-      if (para.length > maxChunkSize) {
-        const lines = para.split(/\n+/);
-        for (const line of lines) {
-          if (currentChunkText.length > 0 && (currentChunkText.length + line.length + 1) > maxChunkSize) {
-            chunks.push({
-              id: chunkId++,
-              originalText: currentChunkText.trim(),
-              maskedText: currentChunkText.trim(),
-            });
-            currentChunkText = '';
-          }
-          currentChunkText += (currentChunkText.length > 0 ? '\n' : '') + line;
-        }
-      } else {
-        currentChunkText += (currentChunkText.length > 0 ? '\n\n' : '') + para;
-      }
+      currentChunkText += (currentChunkText.length > 0 ? '\n\n' : '') + block;
     }
 
     if (currentChunkText.trim().length > 0) {
