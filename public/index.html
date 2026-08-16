@@ -147,11 +147,11 @@
           <span id="input-toggle-label" class="hidden sm:inline">Nhập nguồn</span>
         </button>
 
-        <label for="file-open-markdown" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md cursor-pointer transition-colors shadow-xs" title="Mở file Markdown có sẵn từ máy tính để xem và in">
+        <label for="file-open-markdown" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md cursor-pointer transition-colors shadow-xs" title="Mở file Markdown, DOCX có sẵn từ máy tính để xem và in">
           <i class="fa-regular fa-folder-open text-amber-600"></i>
           <span class="hidden sm:inline">Mở file</span>
         </label>
-        <input type="file" id="file-open-markdown" accept=".md,.markdown,.json,.txt" class="hidden">
+        <input type="file" id="file-open-markdown" accept=".md,.markdown,.docx,.json,.txt" class="hidden">
 
         <!-- User Guest Area (Not logged in) -->
         <div id="auth-guest-area" class="flex items-center gap-1.5">
@@ -190,7 +190,7 @@
           <label for="file-upload-input" class="text-xs text-slate-600 hover:text-blue-600 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 border border-slate-200/80 cursor-pointer transition-colors flex items-center gap-1 shadow-2xs">
             <i class="fa-solid fa-arrow-up-from-bracket text-slate-400 text-[11px]"></i> Tải file
           </label>
-          <input type="file" id="file-upload-input" accept=".md,.markdown,.json,.txt" class="hidden">
+          <input type="file" id="file-upload-input" accept=".md,.markdown,.docx,.json,.txt" class="hidden">
           <button id="btn-clear-source" class="text-xs text-slate-500 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors" title="Xóa toàn bộ nội dung">
             <i class="fa-regular fa-trash-can mr-1"></i> Xóa
           </button>
@@ -205,10 +205,10 @@
         <div id="dropzone" class="hidden absolute inset-0 bg-blue-50/90 backdrop-blur-sm z-20 flex items-center justify-center border-2 border-dashed border-blue-400 rounded-xl">
           <div class="text-center text-blue-600">
             <i class="fa-solid fa-cloud-arrow-up text-3xl mb-1 animate-bounce"></i>
-            <p class="font-semibold text-xs">Thả file Markdown, JSON hoặc TXT vào đây</p>
+            <p class="font-semibold text-xs">Thả file Markdown, Word (.docx), JSON hoặc TXT vào đây</p>
           </div>
         </div>
-        <textarea id="source-editor" rows="2" class="w-full p-2.5 font-mono text-xs leading-relaxed text-slate-800 bg-slate-50 border border-slate-200 rounded-xl resize-y outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all max-h-48" placeholder="Dán nội dung Markdown cần dịch vào đây hoặc kéo thả file từ máy tính..." spellcheck="false"></textarea>
+        <textarea id="source-editor" rows="2" class="w-full p-2.5 font-mono text-xs leading-relaxed text-slate-800 bg-slate-50 border border-slate-200 rounded-xl resize-y outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all max-h-48" placeholder="Dán nội dung Markdown cần dịch vào đây hoặc kéo thả file Word (.docx), Markdown từ máy tính..." spellcheck="false"></textarea>
       </div>
 
       <!-- Controls row: Languages, Style, and Start Button -->

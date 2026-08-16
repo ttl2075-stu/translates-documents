@@ -2,6 +2,7 @@ import { DocumentAdapter } from '../interfaces.js';
 import { MarkdownAdapter } from './markdown.adapter.js';
 import { JsonAdapter } from './json.adapter.js';
 import { TextAdapter } from './text.adapter.js';
+import { DocxAdapter } from './docx-adapter.js';
 
 export class AdapterRegistry {
   private adapters: Map<string, DocumentAdapter> = new Map();
@@ -10,6 +11,7 @@ export class AdapterRegistry {
     this.register(new MarkdownAdapter());
     this.register(new JsonAdapter());
     this.register(new TextAdapter());
+    this.register(new DocxAdapter());
   }
 
   register(adapter: DocumentAdapter): void {

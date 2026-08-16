@@ -1087,6 +1087,17 @@ async function copyTranslatedText() {
   }
 }
 
+function base64ToBlob(base64, mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+  const clean = base64.replace(/^data:.*?;base64,/, '').trim();
+  const byteCharacters = atob(clean);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: mimeType });
+}
+
 function downloadTranslatedFile() {
   if (!currentTranslatedText) {
     showToast('Chưa có bản dịch để tải về!', true);
@@ -1105,7 +1116,19 @@ function downloadTranslatedFile() {
     outName = `${currentSourceFilename}_${targetLang}.md`;
   }
 
-  const blob = new Blob([currentTranslatedText], { type: 'text/plain;charset=utf-8' });
+  const isDocx = currentSourceFilename.toLowerCase().endsWith('.docx');
+  let blob;
+
+  if (isDocx) {
+    try {
+      blob = base64ToBlob(currentTranslatedText);
+    } catch {
+      blob = new Blob([currentTranslatedText], { type: 'text/plain;charset=utf-8' });
+    }
+  } else {
+    blob = new Blob([currentTranslatedText], { type: 'text/plain;charset=utf-8' });
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

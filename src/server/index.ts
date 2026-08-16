@@ -156,7 +156,8 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     }
 
     const filename = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
-    const content = req.file.buffer.toString('utf-8');
+    const isDocx = filename.toLowerCase().endsWith('.docx');
+    const content = isDocx ? req.file.buffer.toString('base64') : req.file.buffer.toString('utf-8');
     const adapter = defaultRegistry.getAdapterByFilename(filename);
 
     res.json({
@@ -165,6 +166,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
       adapterId: adapter.id,
       adapterName: adapter.name,
       content,
+      isBinary: isDocx,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });

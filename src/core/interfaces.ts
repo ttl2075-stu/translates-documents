@@ -39,9 +39,9 @@ export interface DocumentAdapter {
   readonly description: string;
 
   /**
-   * Parses raw file content, extracts translatable text while protecting syntax / code / tags
+   * Parses raw file content (UTF-8 text or base64 / binary Buffer), extracts translatable text while protecting syntax / code / tags
    */
-  parseAndMask(content: string, options: TranslationOptions): Promise<DocumentParseResult>;
+  parseAndMask(content: string | Buffer, options: TranslationOptions): Promise<DocumentParseResult>;
 
   /**
    * Replaces placeholders and reconstructs the original document structure
