@@ -1,9 +1,7 @@
+import '../src/config.js';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import crypto from 'node:crypto';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import { uuidv7 as generateUUIDv7 } from '../src/core/db/prisma.js';
 
 const prisma = new PrismaClient();
 

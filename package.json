@@ -9,13 +9,13 @@
     "start": "node dist/server/index.js",
     "dev": "tsx watch src/server/index.ts",
     "test": "tsc && node --test dist/tests/*.test.js",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
+    "db:generate": "tsx scripts/db-cmd.ts generate",
+    "db:push": "tsx scripts/db-cmd.ts db push",
+    "db:migrate": "tsx scripts/db-cmd.ts migrate dev",
+    "db:migrate:deploy": "tsx scripts/db-cmd.ts migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio",
-    "db:init": "prisma generate && prisma db push && tsx prisma/seed.ts"
+    "db:studio": "tsx scripts/db-cmd.ts studio",
+    "db:init": "tsx scripts/db-cmd.ts generate && tsx scripts/db-cmd.ts db push && tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
