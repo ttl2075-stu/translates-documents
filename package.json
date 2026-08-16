@@ -1,0 +1,31 @@
+{
+  "name": "ai-document-translator",
+  "version": "1.0.0",
+  "description": "AI-powered document translator supporting Markdown, JSON, TXT with structure preservation and OpenAI-compatible API",
+  "main": "dist/server/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server/index.js",
+    "dev": "tsx watch src/server/index.ts",
+    "test": "node --test"
+  },
+  "keywords": ["ai", "translator", "markdown", "openai", "structure-preserving"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^4.85.4"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.13.4",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,469 @@
+/* ==========================================================================
+   AI Document Translator - Minimalist Typography, KaTeX, Images, TOC, Print & Fullwidth
+   ========================================================================== */
+
+:root {
+  --md-font-size: 16px;
+  --md-line-height: 1.75;
+  --md-para-spacing: 0.9rem;
+}
+
+/* Markdown Content Styling with Dynamic Typography */
+.markdown-preview {
+  color: #1e293b;
+  font-size: var(--md-font-size);
+  line-height: var(--md-line-height);
+  width: 100%;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4 {
+  color: #0f172a;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  scroll-margin-top: 1rem;
+}
+
+.markdown-preview h1 {
+  font-size: 1.55em;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.4rem;
+  margin-top: 1.6rem;
+  margin-bottom: 0.65rem;
+}
+
+.markdown-preview h2 {
+  font-size: 1.3em;
+  margin-top: 1.35rem;
+  margin-bottom: 0.55rem;
+}
+
+.markdown-preview h3 {
+  font-size: 1.1em;
+  margin-top: 1.1rem;
+  margin-bottom: 0.45rem;
+}
+
+.markdown-preview p {
+  margin-bottom: var(--md-para-spacing);
+}
+
+/* KaTeX Math Equation Styling */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.6rem 0;
+  margin: 1.1rem 0 !important;
+  text-align: center;
+}
+
+.katex {
+  font-size: 1.1em !important;
+  text-rendering: auto;
+}
+
+/* Image Rendering in Markdown */
+.markdown-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  margin: 1.25rem auto;
+  display: block;
+  box-shadow: 0 4px 14px -2px rgba(15, 23, 42, 0.08);
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s ease;
+}
+
+.markdown-preview img:hover {
+  transform: scale(1.005);
+}
+
+.markdown-preview figure {
+  margin: 1.35rem 0;
+  text-align: center;
+}
+
+.markdown-preview figcaption {
+  font-size: 0.8em;
+  color: #64748b;
+  margin-top: 0.4rem;
+  font-style: italic;
+}
+
+/* Code Snippet Containers with Light Gray Background */
+.code-block-wrapper {
+  margin: 1.1rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0.4rem 0.85rem;
+  color: #475569;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.btn-code-copy {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+}
+
+.btn-code-copy:hover {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+
+.markdown-preview pre {
+  background: #f8fafc;
+  color: #1e293b;
+  padding: 0.85rem 1rem;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82em;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.markdown-preview code {
+  font-family: 'JetBrains Mono', monospace;
+  background: #f1f5f9;
+  color: #2563eb;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  font-size: 0.88em;
+}
+
+.markdown-preview pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.markdown-preview blockquote {
+  border-left: 3px solid #2563eb;
+  background: #f8fafc;
+  padding: 0.6rem 1.1rem;
+  margin: 1.1rem 0;
+  color: #475569;
+  font-style: italic;
+  border-radius: 0 0.375rem 0.375rem 0;
+}
+
+.markdown-preview table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.88em;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid #e2e8f0;
+  padding: 0.55rem 0.85rem;
+  text-align: left;
+}
+
+.markdown-preview th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #334155;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  padding-left: 1.5rem;
+  margin-bottom: var(--md-para-spacing);
+}
+
+.markdown-preview hr {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 1.5rem 0;
+}
+
+/* Table of Contents (TOC) Items */
+.toc-item {
+  display: block;
+  padding: 0.3rem 0.5rem;
+  border-radius: 0.25rem;
+  color: #475569;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toc-item:hover {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.toc-item.level-1 { font-weight: 600; padding-left: 0.5rem; color: #1e293b; }
+.toc-item.level-2 { padding-left: 1.2rem; }
+.toc-item.level-3 { padding-left: 1.8rem; color: #64748b; font-size: 0.9em; }
+
+/* Fullscreen Mode on Target Panel - TRUE FULLWIDTH */
+#target-panel.is-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 50 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  max-height: 100vh !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  box-shadow: none !important;
+  background-color: #ffffff !important;
+}
+
+#target-panel.is-fullscreen .markdown-preview {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 2rem 3rem !important;
+}
+
+/* Print Stylesheet (@media print) - Chuẩn In Ấn Đa Trang & Xuất PDF */
+@page {
+  margin: 1.5cm;
+  size: auto;
+}
+
+@media print {
+  html,
+  body {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+    display: block !important;
+  }
+
+  .no-print,
+  header,
+  #source-input-section,
+  #progress-container,
+  #toc-sidebar,
+  #format-menu-popover,
+  #toast {
+    display: none !important;
+  }
+
+  .max-w-7xl,
+  .w-full,
+  .flex-1,
+  main,
+  #target-panel,
+  #target-preview {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .markdown-preview {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
+    line-height: 1.65 !important;
+    color: #000000 !important;
+  }
+
+  .markdown-preview h1,
+  .markdown-preview h2,
+  .markdown-preview h3 {
+    color: #000000 !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .markdown-preview h1 {
+    font-size: 16pt !important;
+    border-bottom: 1px solid #94a3b8 !important;
+    margin-top: 18pt !important;
+  }
+
+  .markdown-preview h2 {
+    font-size: 13.5pt !important;
+    margin-top: 14pt !important;
+  }
+
+  .markdown-preview h3 {
+    font-size: 12pt !important;
+    margin-top: 11pt !important;
+  }
+
+  .code-block-wrapper,
+  .markdown-preview pre,
+  .markdown-preview table,
+  .markdown-preview figure,
+  .markdown-preview blockquote,
+  .katex-display {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .code-block-wrapper {
+    border: 1px solid #cbd5e1 !important;
+    background: #f8fafc !important;
+    margin: 10pt 0 !important;
+  }
+
+  .code-block-header {
+    background: #f1f5f9 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    font-size: 8.5pt !important;
+  }
+
+  .btn-code-copy {
+    display: none !important;
+  }
+
+  .markdown-preview pre {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    border: none !important;
+    font-size: 9pt !important;
+    padding: 8pt !important;
+  }
+
+  .markdown-preview table {
+    font-size: 9.5pt !important;
+  }
+
+  .markdown-preview th,
+  .markdown-preview td {
+    border: 1px solid #94a3b8 !important;
+    padding: 4pt 6pt !important;
+  }
+
+  .markdown-preview th {
+    background: #f1f5f9 !important;
+  }
+
+  .markdown-preview img {
+    max-width: 90% !important;
+    margin: 10pt auto !important;
+    border: 1px solid #cbd5e1 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .markdown-preview a {
+    color: #000000 !important;
+    text-decoration: underline !important;
+  }
+}
+
+/* Diff View Highlights */
+.diff-line {
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.2rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.diff-line.added {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.diff-line.removed {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.diff-line.unchanged {
+  color: #64748b;
+}
+
+/* Skeleton Loading Animation */
+.skeleton-line {
+  height: 12px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-slide-left {
+  animation: slideLeft 0.2s ease-out forwards;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
