@@ -4,7 +4,6 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config, updateRuntimeConfig } from '../config.js';
-import { getDatabase } from '../core/db/database.js';
 import { defaultRegistry } from '../core/adapters/registry.js';
 import { defaultEngine } from '../core/engine.js';
 import { defaultOpenAIService } from '../core/openai-service.js';
@@ -23,18 +22,18 @@ import { adminRouter } from './routes/admin-routes.js';
 import { seoRouter } from './routes/seo-routes.js';
 import { optionalAuth, requireAuth, AuthenticatedRequest } from '../core/auth/auth-middleware.js';
 
-import { initDatabase } from '../core/db/database.js';
+import { initPrismaDatabase } from '../core/db/prisma.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicDir = path.resolve(__dirname, '../../public');
 
-// Initialize MySQL Database
+// Initialize Prisma MySQL Database & Seed
 try {
-  await initDatabase();
-  console.log(`🐬 Đã khởi tạo và kết nối thành công tới CSDL MySQL: ${config.dbUser}@${config.dbHost}:${config.dbPort}/${config.dbName}`);
+  await initPrismaDatabase();
+  console.log(`🐬 Đã khởi tạo và kết nối thành công tới Prisma MySQL Database: ${config.dbName}`);
 } catch (err: any) {
-  console.error(`❌ Lỗi kết nối CSDL MySQL (${config.dbHost}:${config.dbPort}):`, err.message);
+  console.error(`❌ Lỗi kết nối Prisma MySQL Database:`, err.message);
 }
 
 const app = express();
@@ -75,9 +74,9 @@ app.get('/', (_req, res) => {
   res.sendFile(path.join(publicDir, 'landing.html'));
 });
 
-// Admin Panel alias
+// Dedicated Admin Portal
 app.get('/admin', (_req, res) => {
-  res.sendFile(path.join(publicDir, 'index.html'));
+  res.sendFile(path.join(publicDir, 'admin.html'));
 });
 
 // Mount Feature Routers

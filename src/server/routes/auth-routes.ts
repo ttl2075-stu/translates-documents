@@ -98,6 +98,42 @@ authRouter.post('/google', async (req, res) => {
   }
 });
 
+// Link Google account to current authenticated user
+authRouter.post('/google/link', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { idToken, credential } = req.body;
+    const tokenToVerify = idToken || credential;
+    if (!tokenToVerify) {
+      return res.status(400).json({ success: false, error: 'Thiếu Google ID Token/Credential.' });
+    }
+
+    const user = await defaultAuthService.linkGoogleAccount(userId, tokenToVerify);
+    res.json({
+      success: true,
+      message: 'Liên kết tài khoản Google thành công!',
+      user,
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+// Unlink Google account from current authenticated user
+authRouter.post('/google/unlink', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const user = await defaultAuthService.unlinkGoogleAccount(userId);
+    res.json({
+      success: true,
+      message: 'Đã gỡ liên kết tài khoản Google.',
+      user,
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+
 // OAuth 2.0 Redirect flow: initiate login
 authRouter.get('/google', (_req, res) => {
   try {

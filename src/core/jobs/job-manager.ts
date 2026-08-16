@@ -2,7 +2,7 @@ import { defaultEngine, TranslationEngine } from '../engine.js';
 import { defaultRegistry, AdapterRegistry } from '../adapters/registry.js';
 import { TranslationOptions, TranslationProgress } from '../interfaces.js';
 import { defaultMailerService, MailerService } from '../mailer.js';
-import { query, execute } from '../db/database.js';
+import { prisma, uuidv7 } from '../db/prisma.js';
 import { defaultSubscriptionService } from '../subscription/subscription-service.js';
 
 export interface TranslationJob {
@@ -66,90 +66,89 @@ export class JobManager {
 
   public async loadJobsFromDb() {
     try {
-      const rows = await query<any>('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 200');
+      const rows = await prisma.job.findMany({
+        take: 200,
+        orderBy: { createdAt: 'desc' },
+      });
+
       for (const r of rows) {
         let options: any = {};
         try {
-          options = JSON.parse(r.options_json || '{}');
+          options = JSON.parse(r.optionsJson || '{}');
         } catch {}
 
         const job: TranslationJob = {
           id: r.id,
-          userId: r.user_id,
+          userId: r.userId,
           filename: r.filename,
-          adapterId: r.adapter_id,
-          adapterName: r.adapter_name,
+          adapterId: r.adapterId,
+          adapterName: r.adapterName,
           status: r.status as any,
           progress: {
-            percent: Number(r.progress_percent) || (r.status === 'completed' ? 100 : 0),
-            currentChunk: Number(r.total_chunks) || 0,
-            totalChunks: Number(r.total_chunks) || 1,
+            percent: r.progressPercent || (r.status === 'completed' ? 100 : 0),
+            currentChunk: r.totalChunks || 0,
+            totalChunks: r.totalChunks || 1,
             status: r.status as any,
-            message: r.error_message || (r.status === 'completed' ? 'Hoàn tất' : ''),
+            message: r.errorMessage || (r.status === 'completed' ? 'Hoàn tất' : ''),
           },
           options,
-          recipientEmail: r.recipient_email,
-          emailSent: Boolean(r.email_sent),
-          rawContent: r.raw_content || '',
-          translatedContent: r.translated_content || '',
-          totalChunks: Number(r.total_chunks) || 0,
-          cachedChunks: Number(r.cached_chunks) || 0,
-          durationMs: Number(r.duration_ms) || 0,
-          createdAt: Number(r.created_at),
-          completedAt: r.completed_at ? Number(r.completed_at) : undefined,
-          error: r.error_message,
+          recipientEmail: r.recipientEmail || undefined,
+          emailSent: r.emailSent,
+          rawContent: r.rawContent || '',
+          translatedContent: r.translatedContent || undefined,
+          totalChunks: r.totalChunks,
+          cachedChunks: r.cachedChunks,
+          durationMs: r.durationMs,
+          createdAt: Number(r.createdAt),
+          completedAt: r.completedAt ? Number(r.completedAt) : undefined,
+          error: r.errorMessage || undefined,
         };
         this.jobs.set(job.id, job);
       }
     } catch (err: any) {
-      console.error('Không thể load jobs từ MySQL:', err.message);
+      console.error('Không thể load jobs từ Prisma:', err.message);
     }
   }
 
   public async saveJobToDb(job: TranslationJob) {
     try {
-      await execute(`
-        INSERT INTO jobs 
-        (id, user_id, filename, adapter_id, adapter_name, status, progress_percent, options_json, 
-         recipient_email, email_sent, total_chunks, cached_chunks, duration_ms, raw_content, translated_content, error_message, created_at, completed_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-          status = VALUES(status),
-          progress_percent = VALUES(progress_percent),
-          email_sent = VALUES(email_sent),
-          total_chunks = VALUES(total_chunks),
-          cached_chunks = VALUES(cached_chunks),
-          duration_ms = VALUES(duration_ms),
-          translated_content = VALUES(translated_content),
-          error_message = VALUES(error_message),
-          completed_at = VALUES(completed_at)
-      `, [
-        job.id,
-        job.userId,
-        job.filename,
-        job.adapterId,
-        job.adapterName,
-        job.status,
-        job.progress.percent,
-        JSON.stringify(job.options),
-        job.recipientEmail || null,
-        job.emailSent ? 1 : 0,
-        job.totalChunks,
-        job.cachedChunks,
-        job.durationMs,
-        job.rawContent,
-        job.translatedContent || null,
-        job.error || null,
-        job.createdAt,
-        job.completedAt || null,
-      ]);
+      await prisma.job.upsert({
+        where: { id: job.id },
+        create: {
+          id: job.id,
+          userId: job.userId,
+          filename: job.filename,
+          adapterId: job.adapterId,
+          adapterName: job.adapterName,
+          status: job.status,
+          progressPercent: job.progress.percent,
+          optionsJson: JSON.stringify(job.options),
+          recipientEmail: job.recipientEmail || null,
+          emailSent: Boolean(job.emailSent),
+          totalChunks: job.totalChunks,
+          cachedChunks: job.cachedChunks,
+          durationMs: job.durationMs,
+          rawContent: job.rawContent,
+          translatedContent: job.translatedContent || null,
+          errorMessage: job.error || null,
+          createdAt: BigInt(job.createdAt),
+          completedAt: job.completedAt ? BigInt(job.completedAt) : null,
+        },
+        update: {
+          status: job.status,
+          progressPercent: job.progress.percent,
+          emailSent: Boolean(job.emailSent),
+          totalChunks: job.totalChunks,
+          cachedChunks: job.cachedChunks,
+          durationMs: job.durationMs,
+          translatedContent: job.translatedContent || null,
+          errorMessage: job.error || null,
+          completedAt: job.completedAt ? BigInt(job.completedAt) : null,
+        },
+      });
     } catch (err: any) {
-      console.error('Lỗi lưu job vào MySQL:', err.message);
+      console.error('Lỗi lưu job vào Prisma:', err.message);
     }
-  }
-
-  private generateJobId(): string {
-    return `job_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   }
 
   createJob(createOptions: CreateJobOptions): TranslationJob {
@@ -163,7 +162,7 @@ export class JobManager {
       throw new Error(`Không tìm thấy Adapter xử lý định dạng cho file: ${filename}`);
     }
 
-    const id = this.generateJobId();
+    const id = uuidv7();
 
     const job: TranslationJob = {
       id,
@@ -360,7 +359,7 @@ export class JobManager {
   deleteJob(id: string): boolean {
     this.abortJob(id);
     this.listeners.delete(id);
-    execute('DELETE FROM jobs WHERE id = ?', [id]).catch(() => {});
+    prisma.job.delete({ where: { id } }).catch(() => {});
     return this.jobs.delete(id);
   }
 

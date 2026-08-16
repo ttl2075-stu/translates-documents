@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { query, queryOne, execute } from '../db/database.js';
+import { prisma, uuidv7 } from '../db/prisma.js';
 import { config } from '../../config.js';
 import { defaultMailerService } from '../mailer.js';
 
@@ -11,7 +11,7 @@ export interface SubscriptionPlan {
   charLimitMonthly: number;
   maxConcurrentJobs: number;
   features: string[];
-  badge?: string;
+  badge?: string | null;
   isActive: boolean;
 }
 
@@ -48,47 +48,51 @@ export interface SePayWebhookPayload {
 
 export class SubscriptionService {
   public async getSystemSetting(key: string, defaultValue: string = ''): Promise<string> {
-    const row = await queryOne<any>('SELECT `value` FROM system_settings WHERE `key` = ?', [key]);
+    const row = await prisma.systemSetting.findUnique({ where: { key } });
     return row ? row.value : defaultValue;
   }
 
   public async setSystemSetting(key: string, value: string): Promise<void> {
-    await execute(
-      'INSERT INTO system_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)',
-      [key, value]
-    );
+    await prisma.systemSetting.upsert({
+      where: { key },
+      create: { key, value },
+      update: { value },
+    });
   }
 
   public async getAllPlans(): Promise<SubscriptionPlan[]> {
-    const rows = await query<any>('SELECT * FROM subscription_plans WHERE is_active = 1 ORDER BY price_vnd ASC');
+    const rows = await prisma.subscriptionPlan.findMany({
+      where: { isActive: true },
+      orderBy: { priceVnd: 'asc' },
+    });
 
     return rows.map((r) => ({
       id: r.id,
       name: r.name,
-      priceVnd: Number(r.price_vnd),
-      durationDays: Number(r.duration_days),
-      charLimitMonthly: Number(r.char_limit_monthly),
-      maxConcurrentJobs: Number(r.max_concurrent_jobs),
+      priceVnd: Number(r.priceVnd),
+      durationDays: r.durationDays,
+      charLimitMonthly: r.charLimitMonthly,
+      maxConcurrentJobs: r.maxConcurrentJobs,
       features: JSON.parse(r.features || '[]'),
       badge: r.badge,
-      isActive: Boolean(r.is_active),
+      isActive: r.isActive,
     }));
   }
 
   public async getPlanById(planId: string): Promise<SubscriptionPlan | null> {
-    const r = await queryOne<any>('SELECT * FROM subscription_plans WHERE id = ?', [planId]);
+    const r = await prisma.subscriptionPlan.findUnique({ where: { id: planId } });
     if (!r) return null;
 
     return {
       id: r.id,
       name: r.name,
-      priceVnd: Number(r.price_vnd),
-      durationDays: Number(r.duration_days),
-      charLimitMonthly: Number(r.char_limit_monthly),
-      maxConcurrentJobs: Number(r.max_concurrent_jobs),
+      priceVnd: Number(r.priceVnd),
+      durationDays: r.durationDays,
+      charLimitMonthly: r.charLimitMonthly,
+      maxConcurrentJobs: r.maxConcurrentJobs,
       features: JSON.parse(r.features || '[]'),
       badge: r.badge,
-      isActive: Boolean(r.is_active),
+      isActive: r.isActive,
     };
   }
 
@@ -107,17 +111,23 @@ export class SubscriptionService {
     if (!plan) throw new Error('Không tìm thấy gói cước.');
 
     const name = data.name !== undefined ? data.name : plan.name;
-    const price = data.priceVnd !== undefined ? data.priceVnd : plan.priceVnd;
-    const limit = data.charLimitMonthly !== undefined ? data.charLimitMonthly : plan.charLimitMonthly;
-    const maxJobs = data.maxConcurrentJobs !== undefined ? data.maxConcurrentJobs : plan.maxConcurrentJobs;
+    const priceVnd = data.priceVnd !== undefined ? BigInt(data.priceVnd) : BigInt(plan.priceVnd);
+    const charLimitMonthly = data.charLimitMonthly !== undefined ? data.charLimitMonthly : plan.charLimitMonthly;
+    const maxConcurrentJobs = data.maxConcurrentJobs !== undefined ? data.maxConcurrentJobs : plan.maxConcurrentJobs;
     const features = data.features !== undefined ? JSON.stringify(data.features) : JSON.stringify(plan.features);
     const badge = data.badge !== undefined ? data.badge : plan.badge;
 
-    await execute(`
-      UPDATE subscription_plans 
-      SET name = ?, price_vnd = ?, char_limit_monthly = ?, max_concurrent_jobs = ?, features = ?, badge = ?
-      WHERE id = ?
-    `, [name, price, limit, maxJobs, features, badge, planId]);
+    await prisma.subscriptionPlan.update({
+      where: { id: planId },
+      data: {
+        name,
+        priceVnd,
+        charLimitMonthly,
+        maxConcurrentJobs,
+        features,
+        badge,
+      },
+    });
 
     const updated = await this.getPlanById(planId);
     return updated!;
@@ -133,15 +143,22 @@ export class SubscriptionService {
       throw new Error('Gói miễn phí không cần thanh toán.');
     }
 
-    const orderId = `ord_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const orderId = uuidv7();
     const randomCode = Math.floor(100000 + Math.random() * 900000);
     const orderCode = `TRANS${randomCode}`;
-    const createdAt = Date.now();
+    const now = Date.now();
 
-    await execute(`
-      INSERT INTO orders (id, order_code, user_id, plan_id, amount_vnd, status, created_at)
-      VALUES (?, ?, ?, ?, ?, 'pending', ?)
-    `, [orderId, orderCode, userId, planId, plan.priceVnd, createdAt]);
+    await prisma.order.create({
+      data: {
+        id: orderId,
+        orderCode,
+        userId,
+        planId,
+        amountVnd: BigInt(plan.priceVnd),
+        status: 'pending',
+        createdAt: BigInt(now),
+      },
+    });
 
     const bankName = await this.getSystemSetting('bank_name', config.bankName);
     const bankAccount = await this.getSystemSetting('bank_account', config.bankAccount);
@@ -172,7 +189,7 @@ export class SubscriptionService {
       planName: plan.name,
       amountVnd: plan.priceVnd,
       status: 'pending',
-      createdAt,
+      createdAt: now,
       qrUrl,
       bankName,
       accountNumber: bankAccount,
@@ -181,32 +198,30 @@ export class SubscriptionService {
   }
 
   public async getOrderByCode(orderCode: string): Promise<OrderDetails | null> {
-    const r = await queryOne<any>(`
-      SELECT o.*, p.name as plan_name 
-      FROM orders o
-      JOIN subscription_plans p ON o.plan_id = p.id
-      WHERE o.order_code = ?
-    `, [orderCode]);
+    const order = await prisma.order.findUnique({
+      where: { orderCode },
+      include: { plan: true },
+    });
 
-    if (!r) return null;
+    if (!order) return null;
 
     const bankName = await this.getSystemSetting('bank_name', config.bankName);
     const bankAccount = await this.getSystemSetting('bank_account', config.bankAccount);
     const bankAccountName = await this.getSystemSetting('bank_account_name', config.bankAccountName);
     const mappedBank = bankName;
 
-    const qrUrl = `https://img.vietqr.io/image/${mappedBank}-${bankAccount}-compact2.png?amount=${r.amount_vnd}&addInfo=${r.order_code}&accountName=${encodeURIComponent(bankAccountName)}`;
+    const qrUrl = `https://img.vietqr.io/image/${mappedBank}-${bankAccount}-compact2.png?amount=${order.amountVnd}&addInfo=${order.orderCode}&accountName=${encodeURIComponent(bankAccountName)}`;
 
     return {
-      id: r.id,
-      orderCode: r.order_code,
-      userId: r.user_id,
-      planId: r.plan_id,
-      planName: r.plan_name,
-      amountVnd: Number(r.amount_vnd),
-      status: r.status,
-      createdAt: Number(r.created_at),
-      paidAt: r.paid_at ? Number(r.paid_at) : undefined,
+      id: order.id,
+      orderCode: order.orderCode,
+      userId: order.userId,
+      planId: order.planId,
+      planName: order.plan.name,
+      amountVnd: Number(order.amountVnd),
+      status: order.status as any,
+      createdAt: Number(order.createdAt),
+      paidAt: order.paidAt ? Number(order.paidAt) : undefined,
       qrUrl,
       bankName,
       accountNumber: bankAccount,
@@ -256,35 +271,35 @@ export class SubscriptionService {
     }
 
     // 3. Check for Duplicate (Idempotent)
-    const existingTx = await queryOne('SELECT id FROM sepay_transactions WHERE sepay_id = ?', [data.id]);
+    const existingTx = await prisma.sepayTransaction.findUnique({
+      where: { sepayId: BigInt(data.id) },
+    });
+
     if (existingTx) {
       return { success: true, message: 'Giao dịch đã được ghi nhận trước đó.', duplicate: true };
     }
 
-    // 4. Save transaction to database
+    // 4. Save transaction to database with Prisma
     try {
-      await execute(`
-        INSERT INTO sepay_transactions
-        (sepay_id, gateway, transaction_date, account_number, sub_account,
-         code, amount_in, amount_out, accumulated, content, reference_code, body, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        data.id,
-        data.gateway || 'Unknown',
-        data.transactionDate || new Date().toISOString(),
-        data.accountNumber || '',
-        data.subAccount || '',
-        data.code || null,
-        data.transferType === 'in' ? data.transferAmount : 0,
-        data.transferType === 'out' ? data.transferAmount : 0,
-        data.accumulated || 0,
-        data.content || '',
-        data.referenceCode || '',
-        rawBody,
-        Date.now(),
-      ]);
+      await prisma.sepayTransaction.create({
+        data: {
+          sepayId: BigInt(data.id),
+          gateway: data.gateway || 'Unknown',
+          transactionDate: data.transactionDate || new Date().toISOString(),
+          accountNumber: data.accountNumber || null,
+          subAccount: data.subAccount || null,
+          code: data.code || null,
+          amountIn: BigInt(data.transferType === 'in' ? data.transferAmount : 0),
+          amountOut: BigInt(data.transferType === 'out' ? data.transferAmount : 0),
+          accumulated: BigInt(data.accumulated || 0),
+          content: data.content || null,
+          referenceCode: data.referenceCode || null,
+          body: data as any,
+          createdAt: BigInt(Date.now()),
+        },
+      });
     } catch (err: any) {
-      if (err.code === 'ER_DUP_ENTRY' || err.message?.includes('Duplicate')) {
+      if (err.code === 'P2002' || err.message?.includes('Unique')) {
         return { success: true, message: 'Giao dịch trùng lặp.', duplicate: true };
       }
       throw err;
@@ -303,15 +318,18 @@ export class SubscriptionService {
       }
 
       if (matchedOrderCode) {
-        const order = await queryOne<any>(
-          `SELECT * FROM orders WHERE order_code = ? AND status = 'pending'`,
-          [matchedOrderCode]
-        );
+        const order = await prisma.order.findFirst({
+          where: { orderCode: matchedOrderCode, status: 'pending' },
+        });
 
-        if (order && Number(data.transferAmount) >= Number(order.amount_vnd)) {
-          await execute(`UPDATE orders SET status = 'paid', paid_at = ? WHERE id = ?`, [Date.now(), order.id]);
-          await this.activateSubscriptionForUser(order.user_id, order.plan_id);
-          console.log(`[SePay] Khớp đơn thành công: ${order.order_code} cho User ${order.user_id}, Gói: ${order.plan_id}`);
+        if (order && Number(data.transferAmount) >= Number(order.amountVnd)) {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: { status: 'paid', paidAt: BigInt(Date.now()) },
+          });
+
+          await this.activateSubscriptionForUser(order.userId, order.planId);
+          console.log(`[SePay] Khớp đơn thành công: ${order.orderCode} cho User ${order.userId}, Gói: ${order.planId}`);
         }
       }
     }
@@ -324,34 +342,40 @@ export class SubscriptionService {
     if (!plan) return;
 
     const currentMonth = new Date().toISOString().slice(0, 7);
-    const existingSub = await queryOne<any>(`
-      SELECT * FROM subscriptions 
-      WHERE user_id = ? 
-      ORDER BY starts_at DESC 
-      LIMIT 1
-    `, [userId]);
+    const existingSub = await prisma.subscription.findFirst({
+      where: { userId },
+      orderBy: { startsAt: 'desc' },
+    });
 
-    const now = Date.now();
-    const durationMs = plan.durationDays * 24 * 3600 * 1000;
+    const now = BigInt(Date.now());
+    const durationMs = BigInt(plan.durationDays * 24 * 3600 * 1000);
 
     let startsAt = now;
     let expiresAt = now + durationMs;
 
-    if (existingSub && existingSub.plan_id === planId && Number(existingSub.expires_at) > now) {
-      expiresAt = Number(existingSub.expires_at) + durationMs;
-      startsAt = Number(existingSub.starts_at);
+    if (existingSub && existingSub.planId === planId && existingSub.expiresAt > now) {
+      expiresAt = existingSub.expiresAt + durationMs;
+      startsAt = existingSub.startsAt;
     }
 
-    const subId = `sub_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    await execute(`
-      INSERT INTO subscriptions (id, user_id, plan_id, status, starts_at, expires_at, chars_used_month, last_reset_month)
-      VALUES (?, ?, ?, 'active', ?, ?, 0, ?)
-    `, [subId, userId, planId, startsAt, expiresAt, currentMonth]);
+    const subId = uuidv7();
+    await prisma.subscription.create({
+      data: {
+        id: subId,
+        userId,
+        planId,
+        status: 'active',
+        startsAt,
+        expiresAt,
+        charsUsedMonth: 0,
+        lastResetMonth: currentMonth,
+      },
+    });
 
-    const user = await queryOne<any>('SELECT email, name FROM users WHERE id = ?', [userId]);
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     if (user && config.smtpHost) {
       try {
-        const expiresDateStr = new Date(expiresAt).toLocaleDateString('vi-VN');
+        const expiresDateStr = new Date(Number(expiresAt)).toLocaleDateString('vi-VN');
         await defaultMailerService.sendCustomEmail({
           to: user.email,
           subject: `[AI Translator] Chúc mừng! Kích hoạt gói ${plan.name} thành công`,
@@ -387,61 +411,107 @@ export class SubscriptionService {
     if (!userId || charactersUsed <= 0) return;
     const currentMonth = new Date().toISOString().slice(0, 7);
 
-    const sub = await queryOne<any>(`
-      SELECT * FROM subscriptions 
-      WHERE user_id = ? 
-      ORDER BY starts_at DESC 
-      LIMIT 1
-    `, [userId]);
+    const sub = await prisma.subscription.findFirst({
+      where: { userId },
+      orderBy: { startsAt: 'desc' },
+    });
 
     if (sub) {
-      if (sub.last_reset_month === currentMonth) {
-        await execute(`UPDATE subscriptions SET chars_used_month = chars_used_month + ? WHERE id = ?`, [
-          charactersUsed,
-          sub.id,
-        ]);
+      if (sub.lastResetMonth === currentMonth) {
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: { charsUsedMonth: { increment: charactersUsed } },
+        });
       } else {
-        await execute(`UPDATE subscriptions SET chars_used_month = ?, last_reset_month = ? WHERE id = ?`, [
-          charactersUsed,
-          currentMonth,
-          sub.id,
-        ]);
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: {
+            charsUsedMonth: charactersUsed,
+            lastResetMonth: currentMonth,
+          },
+        });
       }
     }
   }
 
   public async getAdminStats() {
-    const totalUsersRow = await queryOne<any>('SELECT COUNT(*) as count FROM users');
-    const totalPaidOrdersRow = await queryOne<any>(`SELECT COUNT(*) as count, COALESCE(SUM(amount_vnd), 0) as total_rev FROM orders WHERE status = 'paid'`);
-    const activeSubsRow = await queryOne<any>(`SELECT COUNT(*) as count FROM subscriptions WHERE plan_id != 'free' AND status = 'active' AND expires_at > ?`, [Date.now()]);
-    const totalJobsRow = await queryOne<any>('SELECT COUNT(*) as count FROM jobs');
+    const totalUsers = await prisma.user.count();
+    const paidOrders = await prisma.order.findMany({
+      where: { status: 'paid' },
+      select: { amountVnd: true },
+    });
+    const totalRevenueVnd = paidOrders.reduce((sum, o) => sum + Number(o.amountVnd), 0);
+    const totalPaidOrders = paidOrders.length;
+
+    const activeSubscribers = await prisma.subscription.count({
+      where: {
+        planId: { not: 'free' },
+        status: 'active',
+        expiresAt: { gt: BigInt(Date.now()) },
+      },
+    });
+
+    const totalJobs = await prisma.job.count();
 
     return {
-      totalUsers: Number(totalUsersRow?.count) || 0,
-      totalRevenueVnd: Number(totalPaidOrdersRow?.total_rev) || 0,
-      totalPaidOrders: Number(totalPaidOrdersRow?.count) || 0,
-      activeSubscribers: Number(activeSubsRow?.count) || 0,
-      totalJobs: Number(totalJobsRow?.count) || 0,
+      totalUsers,
+      totalRevenueVnd,
+      totalPaidOrders,
+      activeSubscribers,
+      totalJobs,
     };
   }
 
   public async getAllTransactions(limit: number = 50, offset: number = 0) {
-    const txs = await query<any>(`SELECT * FROM sepay_transactions ORDER BY id DESC LIMIT ? OFFSET ?`, [limit, offset]);
-    const totalRow = await queryOne<any>('SELECT COUNT(*) as count FROM sepay_transactions');
-    return { transactions: txs, total: Number(totalRow?.count) || 0 };
+    const txs = await prisma.sepayTransaction.findMany({
+      take: limit,
+      skip: offset,
+      orderBy: { id: 'desc' },
+    });
+
+    const total = await prisma.sepayTransaction.count();
+
+    const formatted = txs.map((t) => ({
+      ...t,
+      id: Number(t.id),
+      sepayId: Number(t.sepayId),
+      amountIn: Number(t.amountIn),
+      amountOut: Number(t.amountOut),
+      accumulated: Number(t.accumulated),
+      createdAt: Number(t.createdAt),
+    }));
+
+    return { transactions: formatted, total };
   }
 
   public async getAllOrders(limit: number = 50, offset: number = 0) {
-    const orders = await query<any>(`
-      SELECT o.*, u.email as user_email, u.name as user_name, p.name as plan_name
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      JOIN subscription_plans p ON o.plan_id = p.id
-      ORDER BY o.created_at DESC
-      LIMIT ? OFFSET ?
-    `, [limit, offset]);
-    const totalRow = await queryOne<any>('SELECT COUNT(*) as count FROM orders');
-    return { orders, total: Number(totalRow?.count) || 0 };
+    const orders = await prisma.order.findMany({
+      take: limit,
+      skip: offset,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { email: true, name: true } },
+        plan: { select: { name: true } },
+      },
+    });
+
+    const total = await prisma.order.count();
+
+    const formatted = orders.map((o) => ({
+      id: o.id,
+      order_code: o.orderCode,
+      user_id: o.userId,
+      user_email: o.user.email,
+      user_name: o.user.name,
+      plan_id: o.planId,
+      plan_name: o.plan.name,
+      amount_vnd: Number(o.amountVnd),
+      status: o.status,
+      created_at: Number(o.createdAt),
+      paid_at: o.paidAt ? Number(o.paidAt) : null,
+    }));
+
+    return { orders: formatted, total };
   }
 }
 

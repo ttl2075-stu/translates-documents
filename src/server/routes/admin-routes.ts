@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { query, queryOne, execute } from '../../core/db/database.js';
+import { prisma } from '../../core/db/prisma.js';
 import { defaultSubscriptionService } from '../../core/subscription/subscription-service.js';
 import { requireAuth, requireAdmin, AuthenticatedRequest } from '../../core/auth/auth-middleware.js';
 import { defaultAuthService } from '../../core/auth/auth-service.js';
@@ -22,33 +22,53 @@ adminRouter.get('/stats', async (_req, res) => {
 // 2. List & Search Users
 adminRouter.get('/users', async (req, res) => {
   try {
-    const search = ((req.query.search as string) || '').trim().toLowerCase();
+    const search = ((req.query.search as string) || '').trim();
     const limit = parseInt(req.query.limit as string, 10) || 50;
     const offset = parseInt(req.query.offset as string, 10) || 0;
 
-    let sql = `
-      SELECT u.id, u.email, u.name, u.role, u.status, u.created_at,
-             s.plan_id, p.name as plan_name, s.status as sub_status, s.expires_at, s.chars_used_month, p.char_limit_monthly
-      FROM users u
-      LEFT JOIN subscriptions s ON u.id = s.user_id AND s.id = (
-        SELECT id FROM subscriptions WHERE user_id = u.id ORDER BY starts_at DESC LIMIT 1
-      )
-      LEFT JOIN subscription_plans p ON s.plan_id = p.id
-    `;
-
-    let params: any[] = [];
+    const whereClause: any = {};
     if (search) {
-      sql += ` WHERE u.email LIKE ? OR u.name LIKE ?`;
-      params.push(`%${search}%`, `%${search}%`);
+      whereClause.OR = [
+        { email: { contains: search } },
+        { name: { contains: search } },
+      ];
     }
 
-    sql += ` ORDER BY u.created_at DESC LIMIT ? OFFSET ?`;
-    params.push(limit, offset);
+    const users = await prisma.user.findMany({
+      where: whereClause,
+      take: limit,
+      skip: offset,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        subscriptions: {
+          orderBy: { startsAt: 'desc' },
+          take: 1,
+          include: { plan: true },
+        },
+      },
+    });
 
-    const users = await query<any>(sql, params);
-    const totalRow = await queryOne<any>('SELECT COUNT(*) as count FROM users');
+    const total = await prisma.user.count({ where: whereClause });
 
-    res.json({ success: true, users, total: Number(totalRow?.count) || 0 });
+    const formattedUsers = users.map((u) => {
+      const activeSub = u.subscriptions[0];
+      return {
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        status: u.status,
+        created_at: Number(u.createdAt),
+        plan_id: activeSub?.planId || 'free',
+        plan_name: activeSub?.plan?.name || 'Gói Khởi Đầu',
+        sub_status: activeSub?.status || 'active',
+        expires_at: activeSub?.expiresAt ? Number(activeSub.expiresAt) : null,
+        chars_used_month: activeSub?.charsUsedMonth || 0,
+        char_limit_monthly: activeSub?.plan?.charLimitMonthly || 20000,
+      };
+    });
+
+    res.json({ success: true, users: formattedUsers, total });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -60,7 +80,7 @@ adminRouter.put('/users/:id', async (req: AuthenticatedRequest, res: Response) =
     const targetUserId = req.params.id;
     const { status, role, planId, extendDays } = req.body;
 
-    const user = await queryOne<any>('SELECT * FROM users WHERE id = ?', [targetUserId]);
+    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
     if (!user) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy người dùng.' });
     }
@@ -69,11 +89,15 @@ adminRouter.put('/users/:id', async (req: AuthenticatedRequest, res: Response) =
       return res.status(400).json({ success: false, error: 'Không thể tự khóa tài khoản hoặc hủy quyền quản trị của chính mình.' });
     }
 
-    if (status) {
-      await execute('UPDATE users SET status = ? WHERE id = ?', [status, targetUserId]);
-    }
-    if (role) {
-      await execute('UPDATE users SET role = ? WHERE id = ?', [role, targetUserId]);
+    const updateData: any = {};
+    if (status) updateData.status = status;
+    if (role) updateData.role = role;
+
+    if (Object.keys(updateData).length > 0) {
+      await prisma.user.update({
+        where: { id: targetUserId },
+        data: updateData,
+      });
     }
 
     if (planId) {
@@ -82,11 +106,17 @@ adminRouter.put('/users/:id', async (req: AuthenticatedRequest, res: Response) =
 
     if (extendDays && Number(extendDays) > 0) {
       const days = Number(extendDays);
-      const sub = await queryOne<any>('SELECT id, expires_at FROM subscriptions WHERE user_id = ? ORDER BY starts_at DESC LIMIT 1', [targetUserId]);
+      const sub = await prisma.subscription.findFirst({
+        where: { userId: targetUserId },
+        orderBy: { startsAt: 'desc' },
+      });
       if (sub) {
-        const base = Math.max(Date.now(), Number(sub.expires_at) || Date.now());
-        const newExpires = base + days * 86400000;
-        await execute('UPDATE subscriptions SET expires_at = ?, status = ? WHERE id = ?', [newExpires, 'active', sub.id]);
+        const base = Math.max(Date.now(), Number(sub.expiresAt) || Date.now());
+        const newExpires = BigInt(base + days * 86400000);
+        await prisma.subscription.update({
+          where: { id: sub.id },
+          data: { expiresAt: newExpires, status: 'active' },
+        });
       }
     }
 
@@ -147,7 +177,7 @@ adminRouter.get('/orders', async (req, res) => {
 // 6. System Settings
 adminRouter.get('/settings', async (_req, res) => {
   try {
-    const rows = await query<any>('SELECT * FROM system_settings');
+    const rows = await prisma.systemSetting.findMany();
     const settings: Record<string, string> = {};
     for (const r of rows) {
       if (r.key === 'sepay_webhook_secret' && r.value) {
