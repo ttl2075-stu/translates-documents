@@ -167,11 +167,38 @@ const refineSelectionLength = document.getElementById('refine-selection-length')
 const refinePromptInput = document.getElementById('refine-prompt-input');
 const lblExecuteRefine = document.getElementById('lbl-execute-refine');
 
-let currentSelection = {
-  text: '',
-  start: 0,
-  end: 0,
-};
+// Background Jobs & SMTP Elements
+const btnOpenJobsModal = document.getElementById('btn-open-jobs-modal');
+const btnCloseJobsModal = document.getElementById('btn-close-jobs-modal');
+const btnCloseJobsModalFooter = document.getElementById('btn-close-jobs-modal-footer');
+const jobsModal = document.getElementById('jobs-modal');
+const btnRefreshJobs = document.getElementById('btn-refresh-jobs');
+const jobsListContainer = document.getElementById('jobs-list-container');
+const jobsEmptyState = document.getElementById('jobs-empty-state');
+const jobsLoadingState = document.getElementById('jobs-loading-state');
+const activeJobsBadge = document.getElementById('active-jobs-badge');
+
+const chkRunBackground = document.getElementById('chk-run-background');
+const chkEnableEmail = document.getElementById('chk-enable-email');
+const inputRecipientEmail = document.getElementById('input-recipient-email');
+const emailRecipientWrapper = document.getElementById('email-recipient-wrapper');
+
+const btnOpenSmtpModal = document.getElementById('btn-open-smtp-modal');
+const btnCloseSmtpModal = document.getElementById('btn-close-smtp-modal');
+const btnCancelSmtp = document.getElementById('btn-cancel-smtp');
+const btnSaveSmtp = document.getElementById('btn-save-smtp');
+const btnTestSmtp = document.getElementById('btn-test-smtp');
+const smtpModal = document.getElementById('smtp-modal');
+const formSmtpSettings = document.getElementById('form-smtp-settings');
+const smtpHostInput = document.getElementById('smtp-host');
+const smtpPortInput = document.getElementById('smtp-port');
+const smtpSecureInput = document.getElementById('smtp-secure');
+const smtpUserInput = document.getElementById('smtp-user');
+const smtpPassInput = document.getElementById('smtp-pass');
+const smtpFromInput = document.getElementById('smtp-from');
+const smtpTestResult = document.getElementById('smtp-test-result');
+
+let jobsRefreshInterval = null;
 
 // -------------------------------------------------------------
 // Initialization
@@ -179,8 +206,14 @@ let currentSelection = {
 document.addEventListener('DOMContentLoaded', async () => {
   loadTypographySettings();
   setupEventListeners();
+  setupJobsAndSmtpListeners();
   await refreshCacheStats();
+  await refreshActiveJobsCount();
+  checkActiveJobOnLoad();
   updateSourceStats();
+
+  // Polling active jobs count periodically
+  setInterval(refreshActiveJobsCount, 8000);
 });
 
 // -------------------------------------------------------------
@@ -610,12 +643,22 @@ async function startTranslation() {
 
   if (isTranslating) return;
 
+  const recipientEmail = chkEnableEmail && chkEnableEmail.checked ? inputRecipientEmail.value.trim() : undefined;
+  if (chkEnableEmail && chkEnableEmail.checked && (!recipientEmail || !recipientEmail.includes('@'))) {
+    showToast('Vui lòng nhập địa chỉ email hợp lệ để nhận file!', true);
+    inputRecipientEmail.focus();
+    return;
+  }
+
   const glossary = parseGlossary(inputGlossary.value);
   const customInstructions = inputCustomInstruction.value.trim();
+
+  const isBackground = chkRunBackground && chkRunBackground.checked;
 
   const payload = {
     content,
     filename: currentSourceFilename,
+    recipientEmail,
     options: {
       sourceLang: selectSourceLang.value,
       targetLang: selectTargetLang.value,
@@ -633,7 +676,8 @@ async function startTranslation() {
   showSkeletonLoading();
   
   let elapsedSec = 0;
-  updateProgress(5, `Đang phân tích cấu trúc cú pháp & kết nối AI... (0s)`);
+  const statusPrefix = isBackground ? 'Đang chạy nền trên máy chủ & kết nối AI...' : 'Đang phân tích cấu trúc cú pháp & kết nối AI...';
+  updateProgress(5, `${statusPrefix} (0s)`);
   const progressTimer = setInterval(() => {
     elapsedSec++;
     const currentText = progressStatusText.textContent.replace(/\s*\(\d+s\)$/, '');
@@ -643,12 +687,44 @@ async function startTranslation() {
   activeAbortController = new AbortController();
 
   try {
-    const response = await fetch('/api/translate-stream', {
+    let streamUrl = '/api/translate-stream';
+    let requestOptions = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
       signal: activeAbortController.signal,
-    });
+    };
+
+    if (isBackground) {
+      // 1. Register background job on server
+      const jobRes = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!jobRes.ok) {
+        throw new Error(`Không thể khởi tạo tiến trình nền (${jobRes.status})`);
+      }
+
+      const jobData = await jobRes.json();
+      const jobId = jobData.job?.id;
+      if (jobId) {
+        localStorage.setItem('active_translation_job', jobId);
+        refreshActiveJobsCount();
+        showToast('🚀 Tiến trình nền đã bắt đầu! Bạn có thể tắt máy bất cứ lúc nào.');
+      }
+
+      // Stream from job endpoint
+      streamUrl = `/api/jobs/${jobId}/stream`;
+      requestOptions = {
+        method: 'GET',
+        headers: { 'Accept': 'text/event-stream' },
+        signal: activeAbortController.signal,
+      };
+    }
+
+    const response = await fetch(streamUrl, requestOptions);
 
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
@@ -697,6 +773,8 @@ async function startTranslation() {
     clearInterval(progressTimer);
     setTranslatingState(false);
     activeAbortController = null;
+    localStorage.removeItem('active_translation_job');
+    refreshActiveJobsCount();
   }
 }
 
@@ -1253,6 +1331,375 @@ async function executeRefine() {
     btnExecuteRefine.disabled = false;
     lblExecuteRefine.textContent = 'Áp dụng chỉnh sửa';
     btnExecuteRefine.classList.remove('opacity-75', 'cursor-not-allowed');
+  }
+}
+
+// -------------------------------------------------------------
+// Background Jobs Management & SMTP Functions
+// -------------------------------------------------------------
+
+function setupJobsAndSmtpListeners() {
+  // Toggle email recipient input
+  if (chkEnableEmail) {
+    chkEnableEmail.addEventListener('change', () => {
+      if (chkEnableEmail.checked) {
+        emailRecipientWrapper.classList.remove('hidden');
+        inputRecipientEmail.focus();
+      } else {
+        emailRecipientWrapper.classList.add('hidden');
+      }
+    });
+  }
+
+  // Jobs Modal
+  if (btnOpenJobsModal) btnOpenJobsModal.addEventListener('click', openJobsModal);
+  if (btnCloseJobsModal) btnCloseJobsModal.addEventListener('click', closeJobsModal);
+  if (btnCloseJobsModalFooter) btnCloseJobsModalFooter.addEventListener('click', closeJobsModal);
+  if (btnRefreshJobs) btnRefreshJobs.addEventListener('click', loadJobsList);
+
+  // SMTP Modal
+  if (btnOpenSmtpModal) btnOpenSmtpModal.addEventListener('click', openSmtpModal);
+  if (btnCloseSmtpModal) btnCloseSmtpModal.addEventListener('click', closeSmtpModal);
+  if (btnCancelSmtp) btnCancelSmtp.addEventListener('click', closeSmtpModal);
+  if (btnSaveSmtp) btnSaveSmtp.addEventListener('click', saveSmtpConfig);
+  if (btnTestSmtp) btnTestSmtp.addEventListener('click', testSmtpConnection);
+}
+
+async function refreshActiveJobsCount() {
+  try {
+    const res = await fetch('/api/jobs');
+    if (!res.ok) return;
+    const data = await res.json();
+    const activeJobs = (data.jobs || []).filter((j) => j.status === 'running' || j.status === 'pending');
+    if (activeJobs.length > 0) {
+      activeJobsBadge.textContent = activeJobs.length;
+      activeJobsBadge.classList.remove('hidden');
+    } else {
+      activeJobsBadge.classList.add('hidden');
+    }
+  } catch (_) {}
+}
+
+async function checkActiveJobOnLoad() {
+  const savedJobId = localStorage.getItem('active_translation_job');
+  if (!savedJobId) return;
+
+  try {
+    const res = await fetch(`/api/jobs/${savedJobId}`);
+    if (!res.ok) {
+      localStorage.removeItem('active_translation_job');
+      return;
+    }
+    const data = await res.json();
+    const job = data.job;
+    if (!job) return;
+
+    if (job.status === 'completed') {
+      showToast(`🎉 Tiến trình "${job.filename}" đã hoàn thành trong nền! Bấm vào Tiến trình nền để nạp kết quả.`);
+    } else if (job.status === 'running') {
+      showToast(`⏳ Tiến trình "${job.filename}" đang tiếp tục chạy trên máy chủ.`);
+    }
+  } catch (_) {}
+}
+
+function openJobsModal() {
+  jobsModal.classList.remove('hidden');
+  loadJobsList();
+  if (jobsRefreshInterval) clearInterval(jobsRefreshInterval);
+  jobsRefreshInterval = setInterval(loadJobsList, 4000);
+}
+
+function closeJobsModal() {
+  jobsModal.classList.add('hidden');
+  if (jobsRefreshInterval) {
+    clearInterval(jobsRefreshInterval);
+    jobsRefreshInterval = null;
+  }
+}
+
+async function loadJobsList() {
+  jobsLoadingState.classList.remove('hidden');
+  jobsEmptyState.classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/jobs');
+    const data = await res.json();
+    const jobs = data.jobs || [];
+
+    jobsLoadingState.classList.add('hidden');
+    if (jobs.length === 0) {
+      jobsEmptyState.classList.remove('hidden');
+      jobsListContainer.innerHTML = '';
+      return;
+    }
+
+    renderJobsList(jobs);
+  } catch (err) {
+    jobsLoadingState.classList.add('hidden');
+    showToast('Lỗi khi tải danh sách tiến trình: ' + err.message, true);
+  }
+}
+
+function renderJobsList(jobs) {
+  jobsListContainer.innerHTML = '';
+
+  jobs.forEach((job) => {
+    const card = document.createElement('div');
+    card.className = 'p-4 bg-slate-50 border border-slate-200 rounded-xl transition-all hover:border-slate-300 flex flex-col gap-3';
+
+    let statusPill = '';
+    if (job.status === 'running') {
+      statusPill = `<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full animate-pulse">
+        <i class="fa-solid fa-circle-notch fa-spin text-[10px]"></i> Đang chạy (${job.progress?.percent || 0}%)
+      </span>`;
+    } else if (job.status === 'completed') {
+      statusPill = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold bg-emerald-100 text-emerald-700 rounded-full">
+        <i class="fa-solid fa-circle-check text-[10px]"></i> Hoàn tất (${(job.durationMs / 1000).toFixed(1)}s)
+      </span>`;
+    } else if (job.status === 'aborted') {
+      statusPill = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full">
+        <i class="fa-solid fa-stop text-[10px]"></i> Đã ngắt / Hủy
+      </span>`;
+    } else {
+      statusPill = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-700 rounded-full">
+        <i class="fa-solid fa-circle-exclamation text-[10px]"></i> Lỗi
+      </span>`;
+    }
+
+    const createdTime = new Date(job.createdAt).toLocaleTimeString();
+    const emailInfo = job.recipientEmail
+      ? `<span class="text-[11px] text-slate-500 flex items-center gap-1">
+          <i class="fa-regular fa-envelope text-emerald-600"></i> ${job.recipientEmail} ${job.emailSent ? '✅ (Đã gửi mail)' : ''}
+        </span>`
+      : '';
+
+    card.innerHTML = `
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-xs text-slate-800">${escapeHtml(job.filename)}</span>
+          <span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.2 rounded font-mono">${job.adapterName}</span>
+          <span class="text-[11px] text-slate-400">&bull; ${createdTime}</span>
+        </div>
+        <div>${statusPill}</div>
+      </div>
+
+      <!-- Progress bar -->
+      <div>
+        <div class="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+          <span>${escapeHtml(job.progress?.message || 'Đang xử lý...')}</span>
+          <span class="font-mono font-bold text-slate-700">${job.progress?.percent || 0}%</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+          <div class="bg-blue-600 h-full rounded-full transition-all duration-300" style="width: ${job.progress?.percent || 0}%"></div>
+        </div>
+      </div>
+
+      <!-- Footer action bar -->
+      <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60 text-xs flex-wrap">
+        <div>${emailInfo}</div>
+        <div class="flex items-center gap-1.5 ml-auto">
+          ${job.status === 'completed' ? `
+            <button class="btn-load-job px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors" data-id="${job.id}">
+              <i class="fa-solid fa-arrow-right-to-bracket mr-1"></i> Nạp vào Editor
+            </button>
+            <a href="/api/jobs/${job.id}/download" class="px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors" target="_blank" download>
+              <i class="fa-solid fa-download mr-1"></i> Tải file
+            </a>
+          ` : ''}
+          ${job.status === 'running' || job.status === 'pending' ? `
+            <button class="btn-abort-job px-2.5 py-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors" data-id="${job.id}">
+              <i class="fa-solid fa-stop mr-1"></i> Hủy tiến trình
+            </button>
+          ` : ''}
+          <button class="btn-delete-job text-slate-400 hover:text-red-600 p-1 rounded hover:bg-slate-200 transition-colors" data-id="${job.id}" title="Xóa tiến trình này">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Bind event actions
+    const btnLoad = card.querySelector('.btn-load-job');
+    if (btnLoad) {
+      btnLoad.addEventListener('click', () => loadJobIntoEditor(job.id));
+    }
+
+    const btnAbort = card.querySelector('.btn-abort-job');
+    if (btnAbort) {
+      btnAbort.addEventListener('click', () => abortJob(job.id));
+    }
+
+    const btnDelete = card.querySelector('.btn-delete-job');
+    if (btnDelete) {
+      btnDelete.addEventListener('click', () => deleteJob(job.id));
+    }
+
+    jobsListContainer.appendChild(card);
+  });
+}
+
+async function abortJob(jobId) {
+  if (!confirm('Bạn có chắc chắn muốn ngắt và hủy tiến trình dịch này?')) return;
+
+  try {
+    const res = await fetch(`/api/jobs/${jobId}/abort`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast('Đã hủy tiến trình thành công!');
+      loadJobsList();
+      refreshActiveJobsCount();
+    } else {
+      showToast(data.message || 'Không thể hủy tiến trình', true);
+    }
+  } catch (err) {
+    showToast('Lỗi khi hủy tiến trình: ' + err.message, true);
+  }
+}
+
+async function deleteJob(jobId) {
+  try {
+    const res = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
+    if (res.ok) {
+      showToast('Đã xóa tiến trình khỏi danh sách');
+      loadJobsList();
+      refreshActiveJobsCount();
+    }
+  } catch (err) {
+    showToast('Lỗi khi xóa tiến trình: ' + err.message, true);
+  }
+}
+
+async function loadJobIntoEditor(jobId) {
+  try {
+    const res = await fetch(`/api/jobs/${jobId}`);
+    const data = await res.json();
+    const job = data.job;
+
+    if (!job || !job.translatedContent) {
+      showToast('Tiến trình chưa có kết quả để nạp!', true);
+      return;
+    }
+
+    sourceEditor.value = job.rawContent;
+    currentSourceFilename = job.filename;
+    currentTranslatedText = stripThinkingTags(job.translatedContent);
+    targetEditor.value = currentTranslatedText;
+
+    updateSourceStats();
+    updateTargetStats(currentTranslatedText.length, `Nạp từ Tiến trình nền (${(job.durationMs / 1000).toFixed(1)}s)`);
+    renderTargetMarkdown(currentTranslatedText, true);
+    renderDiffView(sourceEditor.value, currentTranslatedText);
+
+    closeJobsModal();
+    showToast(`✅ Đã nạp thành công bản dịch của "${job.filename}"!`);
+  } catch (err) {
+    showToast('Lỗi khi nạp bản dịch: ' + err.message, true);
+  }
+}
+
+// -------------------------------------------------------------
+// SMTP Settings
+// -------------------------------------------------------------
+
+async function openSmtpModal() {
+  smtpModal.classList.remove('hidden');
+  smtpTestResult.classList.add('hidden');
+  await loadSmtpConfig();
+}
+
+function closeSmtpModal() {
+  smtpModal.classList.add('hidden');
+}
+
+async function loadSmtpConfig() {
+  try {
+    const res = await fetch('/api/email/config');
+    const data = await res.json();
+    smtpHostInput.value = data.smtpHost || '';
+    smtpPortInput.value = data.smtpPort || 587;
+    smtpSecureInput.checked = Boolean(data.smtpSecure);
+    smtpUserInput.value = data.smtpUser || '';
+    smtpPassInput.value = '';
+    smtpFromInput.value = data.smtpFrom || 'AI Document Translator <noreply@domain.com>';
+  } catch (err) {
+    showToast('Không thể tải cấu hình Mail Server', true);
+  }
+}
+
+async function saveSmtpConfig() {
+  btnSaveSmtp.disabled = true;
+  btnSaveSmtp.textContent = 'Đang lưu...';
+
+  try {
+    const payload = {
+      smtpHost: smtpHostInput.value.trim(),
+      smtpPort: parseInt(smtpPortInput.value, 10) || 587,
+      smtpSecure: smtpSecureInput.checked,
+      smtpUser: smtpUserInput.value.trim(),
+      smtpFrom: smtpFromInput.value.trim(),
+    };
+
+    if (smtpPassInput.value.trim().length > 0) {
+      payload.smtpPass = smtpPassInput.value.trim();
+    }
+
+    const res = await fetch('/api/email/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast('✅ Đã lưu cấu hình Mail Server thành công!');
+      closeSmtpModal();
+    } else {
+      showToast(data.message || 'Lỗi khi lưu cấu hình Mail Server', true);
+    }
+  } catch (err) {
+    showToast('Lỗi: ' + err.message, true);
+  } finally {
+    btnSaveSmtp.disabled = false;
+    btnSaveSmtp.textContent = 'Lưu cấu hình';
+  }
+}
+
+async function testSmtpConnection() {
+  btnTestSmtp.disabled = true;
+  btnTestSmtp.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Đang kiểm tra...';
+  smtpTestResult.className = 'hidden p-2.5 rounded-lg text-xs';
+
+  try {
+    const payload = {
+      smtpHost: smtpHostInput.value.trim(),
+      smtpPort: parseInt(smtpPortInput.value, 10) || 587,
+      smtpSecure: smtpSecureInput.checked,
+      smtpUser: smtpUserInput.value.trim(),
+      smtpPass: smtpPassInput.value.trim(),
+    };
+
+    const res = await fetch('/api/email/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    smtpTestResult.classList.remove('hidden');
+    if (data.success) {
+      smtpTestResult.className = 'p-2.5 rounded-lg text-xs bg-emerald-50 text-emerald-800 border border-emerald-200';
+      smtpTestResult.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> ${data.message}`;
+    } else {
+      smtpTestResult.className = 'p-2.5 rounded-lg text-xs bg-red-50 text-red-800 border border-red-200';
+      smtpTestResult.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> ${data.message}`;
+    }
+  } catch (err) {
+    smtpTestResult.classList.remove('hidden');
+    smtpTestResult.className = 'p-2.5 rounded-lg text-xs bg-red-50 text-red-800 border border-red-200';
+    smtpTestResult.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> Lỗi kết nối: ${err.message}`;
+  } finally {
+    btnTestSmtp.disabled = false;
+    btnTestSmtp.innerHTML = '<i class="fa-solid fa-paper-plane text-emerald-600 text-[11px]"></i> <span>Kiểm tra kết nối</span>';
   }
 }
 

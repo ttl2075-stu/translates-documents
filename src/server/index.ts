@@ -245,6 +245,210 @@ app.post('/api/translate-stream', async (req, res) => {
   }
 });
 
+import { defaultJobManager } from '../core/jobs/job-manager.js';
+import { defaultMailerService } from '../core/mailer.js';
+
+// 9. Background Jobs Management Endpoints
+
+// 9.1. Create & Start Background Translation Job
+app.post('/api/jobs', async (req, res) => {
+  try {
+    const { content, filename = 'document.md', adapterId, options, recipientEmail, apiOverride } = req.body;
+
+    if (!content || typeof content !== 'string') {
+      return res.status(400).json({ error: 'Nội dung tài liệu không được để trống.' });
+    }
+
+    const job = defaultJobManager.createJob({
+      rawContent: content,
+      filename,
+      adapterId,
+      options: options as TranslationOptions,
+      recipientEmail,
+      apiOverride,
+    });
+
+    // Start asynchronously in background
+    defaultJobManager.startJob(job.id, apiOverride);
+
+    res.json({
+      success: true,
+      message: 'Tiến trình dịch nền đã được khởi tạo thành công!',
+      job,
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 9.2. List All Jobs
+app.get('/api/jobs', (_req, res) => {
+  const jobs = defaultJobManager.getAllJobs();
+  res.json({ jobs });
+});
+
+// 9.3. Get Job Details & Result
+app.get('/api/jobs/:id', (req, res) => {
+  const job = defaultJobManager.getJob(req.params.id);
+  if (!job) {
+    return res.status(404).json({ error: 'Không tìm thấy tiến trình.' });
+  }
+  res.json({ job });
+});
+
+// 9.4. Stream Job Live Progress via SSE (Supports Reconnection)
+app.get('/api/jobs/:id/stream', (req, res) => {
+  const job = defaultJobManager.getJob(req.params.id);
+  if (!job) {
+    return res.status(404).json({ error: 'Không tìm thấy tiến trình.' });
+  }
+
+  // Set SSE Headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    'X-Accel-Buffering': 'no',
+    Connection: 'keep-alive',
+  });
+  if (typeof (res as any).flushHeaders === 'function') {
+    (res as any).flushHeaders();
+  }
+
+  const sendEvent = (event: string, data: any) => {
+    if (!res.writableEnded) {
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+      if (typeof (res as any).flush === 'function') {
+        (res as any).flush();
+      }
+    }
+  };
+
+  // Send current state immediately upon subscribing/reconnecting
+  sendEvent('status', { status: job.status, job });
+  sendEvent('progress', job.progress);
+
+  if (job.status === 'completed') {
+    sendEvent('complete', { jobId: job.id, result: { translatedContent: job.translatedContent } });
+    return res.end();
+  }
+
+  if (job.status === 'aborted' || job.status === 'failed') {
+    sendEvent('error', { jobId: job.id, message: job.error || 'Tiến trình đã kết thúc.' });
+    return res.end();
+  }
+
+  // Keep-alive heartbeat
+  const heartbeat = setInterval(() => {
+    if (!res.writableEnded) {
+      res.write(':keepalive\n\n');
+      if (typeof (res as any).flush === 'function') {
+        (res as any).flush();
+      }
+    }
+  }, 10000);
+
+  const unsubscribe = defaultJobManager.subscribe(job.id, (event, data) => {
+    sendEvent(event, data);
+    if (event === 'complete' || event === 'error' || event === 'abort') {
+      clearInterval(heartbeat);
+      res.end();
+    }
+  });
+
+  res.on('close', () => {
+    clearInterval(heartbeat);
+    unsubscribe();
+  });
+});
+
+// 9.5. Abort / Cancel Running Job
+app.post('/api/jobs/:id/abort', (req, res) => {
+  const success = defaultJobManager.abortJob(req.params.id);
+  if (success) {
+    res.json({ success: true, message: 'Đã hủy tiến trình thành công!' });
+  } else {
+    res.status(400).json({ success: false, message: 'Không thể hủy tiến trình hoặc tiến trình không tồn tại.' });
+  }
+});
+
+// 9.6. Delete Job
+app.delete('/api/jobs/:id', (req, res) => {
+  const success = defaultJobManager.deleteJob(req.params.id);
+  if (success) {
+    res.json({ success: true, message: 'Đã xóa tiến trình thành công!' });
+  } else {
+    res.status(404).json({ success: false, message: 'Không tìm thấy tiến trình.' });
+  }
+});
+
+// 9.7. Download Translated File directly
+app.get('/api/jobs/:id/download', (req, res) => {
+  const job = defaultJobManager.getJob(req.params.id);
+  if (!job || !job.translatedContent) {
+    return res.status(404).json({ error: 'Không tìm thấy file kết quả.' });
+  }
+
+  const targetLang = job.options.targetLang || 'vi';
+  const lastDot = job.filename.lastIndexOf('.');
+  const outName =
+    lastDot !== -1
+      ? `${job.filename.substring(0, lastDot)}_${targetLang}${job.filename.substring(lastDot)}`
+      : `${job.filename}_${targetLang}.md`;
+
+  res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(outName)}"`);
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.send(job.translatedContent);
+});
+
+// 10. SMTP Mail Server Endpoints
+
+// 10.1. Get Email Configuration
+app.get('/api/email/config', (_req, res) => {
+  res.json({
+    smtpHost: config.smtpHost,
+    smtpPort: config.smtpPort,
+    smtpSecure: config.smtpSecure,
+    smtpUser: config.smtpUser,
+    smtpFrom: config.smtpFrom,
+    hasPassword: Boolean(config.smtpPass && config.smtpPass.length > 0),
+  });
+});
+
+// 10.2. Update Email Configuration
+app.post('/api/email/config', (req, res) => {
+  try {
+    const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass, smtpFrom } = req.body;
+    updateRuntimeConfig({
+      smtpHost,
+      smtpPort: smtpPort ? parseInt(smtpPort, 10) : undefined,
+      smtpSecure: smtpSecure !== undefined ? Boolean(smtpSecure) : undefined,
+      smtpUser,
+      smtpPass: smtpPass !== undefined ? smtpPass : undefined,
+      smtpFrom,
+    });
+
+    res.json({
+      success: true,
+      message: 'Cập nhật cấu hình Mail Server thành công!',
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
+// 10.3. Test SMTP Connection
+app.post('/api/email/test', async (req, res) => {
+  const { smtpHost, smtpPort, smtpSecure, smtpUser, smtpPass } = req.body;
+  const result = await defaultMailerService.testConnection({
+    host: smtpHost,
+    port: smtpPort ? parseInt(smtpPort, 10) : undefined,
+    secure: smtpSecure !== undefined ? Boolean(smtpSecure) : undefined,
+    user: smtpUser,
+    pass: smtpPass,
+  });
+  res.json(result);
+});
+
 // Global Error Handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('Server Unhandled Error:', err);
