@@ -8,13 +8,28 @@ import { config } from '../../config.js';
  */
 export const prisma = new PrismaClient();
 
+import * as nodeCrypto from 'node:crypto';
+
 /**
  * Standard RFC 9562 UUIDv7 Generator
  * 48-bit timestamp in milliseconds + 4-bit version (7) + 12-bit random + 2-bit variant (10) + 62-bit random
  * Time-ordered, monotonic, optimal for MySQL B-tree clustering.
  */
 export function uuidv7(): string {
-  const bytes = crypto.randomBytes(16);
+  const bytes = new Uint8Array(16);
+
+  if (typeof nodeCrypto?.randomFillSync === 'function') {
+    nodeCrypto.randomFillSync(bytes);
+  } else if (typeof nodeCrypto?.randomBytes === 'function') {
+    bytes.set(nodeCrypto.randomBytes(16));
+  } else if (typeof globalThis?.crypto?.getRandomValues === 'function') {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < 16; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+
   const now = Date.now();
 
   // 48-bit timestamp (Big-Endian)
@@ -31,12 +46,16 @@ export function uuidv7(): string {
   // Variant in byte 8: 10xx xxxx -> (bytes[8] & 0x3f) | 0x80
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
+  const hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
   return [
-    bytes.subarray(0, 4).toString('hex'),
-    bytes.subarray(4, 6).toString('hex'),
-    bytes.subarray(6, 8).toString('hex'),
-    bytes.subarray(8, 10).toString('hex'),
-    bytes.subarray(10, 16).toString('hex'),
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20, 32),
   ].join('-');
 }
 

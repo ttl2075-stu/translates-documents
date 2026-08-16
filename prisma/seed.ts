@@ -5,29 +5,6 @@ import { uuidv7 as generateUUIDv7 } from '../src/core/db/prisma.js';
 
 const prisma = new PrismaClient();
 
-function generateUUIDv7(): string {
-  const bytes = crypto.randomBytes(16);
-  const now = Date.now();
-
-  bytes[0] = (now / 0x10000000000) & 0xff;
-  bytes[1] = (now / 0x100000000) & 0xff;
-  bytes[2] = (now / 0x1000000) & 0xff;
-  bytes[3] = (now / 0x10000) & 0xff;
-  bytes[4] = (now / 0x100) & 0xff;
-  bytes[5] = now & 0xff;
-
-  bytes[6] = (bytes[6] & 0x0f) | 0x70;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-
-  return [
-    bytes.subarray(0, 4).toString('hex'),
-    bytes.subarray(4, 6).toString('hex'),
-    bytes.subarray(6, 8).toString('hex'),
-    bytes.subarray(8, 10).toString('hex'),
-    bytes.subarray(10, 16).toString('hex'),
-  ].join('-');
-}
-
 async function main() {
   console.log('🌱 Bắt đầu seed dữ liệu CSDL Prisma (MySQL + UUIDv7)...');
 
