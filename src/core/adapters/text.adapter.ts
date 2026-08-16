@@ -36,29 +36,11 @@ export class TextAdapter implements DocumentAdapter {
       }
     }
 
-    const chunks: ChunkItem[] = [];
-    let currentText = '';
-    let chunkId = 0;
-
-    for (const block of normalizedBlocks) {
-      if (currentText.length > 0 && (currentText.length + block.length + 2) > config.maxChunkSize) {
-        chunks.push({
-          id: chunkId++,
-          originalText: currentText.trim(),
-          maskedText: currentText.trim(),
-        });
-        currentText = '';
-      }
-      currentText += (currentText.length > 0 ? '\n\n' : '') + block;
-    }
-
-    if (currentText.trim().length > 0) {
-      chunks.push({
-        id: chunkId++,
-        originalText: currentText.trim(),
-        maskedText: currentText.trim(),
-      });
-    }
+    const chunks: ChunkItem[] = normalizedBlocks.map((block, idx) => ({
+      id: idx,
+      originalText: block,
+      maskedText: block,
+    }));
 
     return {
       chunks: chunks.length > 0 ? chunks : [{ id: 0, originalText: content, maskedText: content }],

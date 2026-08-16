@@ -337,16 +337,6 @@ export class MarkdownAdapter implements DocumentAdapter {
   }
 
   private splitIntoSemanticChunks(text: string, maxChunkSize: number): ChunkItem[] {
-    if (text.length <= maxChunkSize) {
-      return [
-        {
-          id: 0,
-          originalText: text,
-          maskedText: text,
-        },
-      ];
-    }
-
     const rawBlocks = this.extractMarkdownBlocks(text);
     const normalizedBlocks: string[] = [];
 
@@ -368,33 +358,13 @@ export class MarkdownAdapter implements DocumentAdapter {
       }
     }
 
-    // Accumulate normalized blocks into chunks cleanly at block boundaries
-    const chunks: ChunkItem[] = [];
-    let currentChunkText = '';
-    let chunkId = 0;
+    // Each discrete structural block is mapped 1:1 to a ChunkItem to guarantee paragraph isolation
+    const chunks: ChunkItem[] = normalizedBlocks.map((block, idx) => ({
+      id: idx,
+      originalText: block,
+      maskedText: block,
+    }));
 
-    for (const block of normalizedBlocks) {
-      // If adding this block exceeds maxChunkSize, cut the batch cleanly at the end of the previous block
-      if (currentChunkText.length > 0 && (currentChunkText.length + block.length + 2) > maxChunkSize) {
-        chunks.push({
-          id: chunkId++,
-          originalText: currentChunkText.trim(),
-          maskedText: currentChunkText.trim(),
-        });
-        currentChunkText = '';
-      }
-
-      currentChunkText += (currentChunkText.length > 0 ? '\n\n' : '') + block;
-    }
-
-    if (currentChunkText.trim().length > 0) {
-      chunks.push({
-        id: chunkId++,
-        originalText: currentChunkText.trim(),
-        maskedText: currentChunkText.trim(),
-      });
-    }
-
-    return chunks;
+    return chunks.length > 0 ? chunks : [{ id: 0, originalText: text, maskedText: text }];
   }
 }

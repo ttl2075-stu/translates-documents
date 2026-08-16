@@ -94,6 +94,18 @@ export class TranslationEngine {
           message: `Đang dịch đoạn ${chunk.id + 1}/${totalChunks}...`,
         });
 
+        // Instant passthrough for standalone masked blocks (code blocks, math blocks, frontmatter)
+        if (/^\s*\[\[_MASK_(?:FRONTMATTER|FENCE_CODE|MATH_BLOCK|HTML_TAG)_\d+_\]\]\s*$/.test(chunk.maskedText.trim())) {
+          const targetChunk = translatedChunks.find((c) => c.id === chunk.id);
+          if (targetChunk) {
+            targetChunk.translatedText = chunk.maskedText;
+          }
+          onToken?.(chunk.maskedText, chunk.id);
+          completedChunks++;
+          cachedChunks++;
+          continue;
+        }
+
         try {
           const { text: translatedText, fromCache } = await this.openAIService.translateChunkStream(
             chunk.maskedText,

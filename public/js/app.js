@@ -78,8 +78,10 @@ Tham khảo mã nguồn tại [Kho lưu trữ dự án GitHub](https://github.co
 // App State
 let currentSourceFilename = 'adaptive_infonce_paper.md';
 let currentTranslatedText = '';
-let currentViewMode = 'rendered'; // 'rendered' | 'raw' | 'diff'
+let liveChunkBuffers = {};
+let liveTotalChunks = 0;
 let isTranslating = false;
+let currentViewMode = 'rendered'; // 'rendered' | 'raw' | 'diff'
 let isFullscreen = false;
 let isTocOpen = false;
 let isInputSectionVisible = true;
@@ -624,7 +626,8 @@ async function startTranslation() {
     },
   };
 
-  liveStreamedText = '';
+  liveChunkBuffers = {};
+  liveTotalChunks = 0;
   setTranslatingState(true);
   showProgressBar(true);
   showSkeletonLoading();
@@ -699,20 +702,30 @@ async function startTranslation() {
 
 function handleTranslationEvent(type, data) {
   if (type === 'progress') {
+    if (data.totalChunks) liveTotalChunks = data.totalChunks;
     updateProgress(data.percent, data.message);
   } else if (type === 'token') {
-    if (!liveStreamedText) {
-      targetPreview.innerHTML = '';
+    const chunkId = data.chunkId !== undefined ? data.chunkId : 0;
+    liveChunkBuffers[chunkId] = (liveChunkBuffers[chunkId] || '') + data.token;
+
+    // Compose ordered live markdown across distinct chunk slots
+    const maxIdx = Math.max(liveTotalChunks, Object.keys(liveChunkBuffers).length);
+    const parts = [];
+    for (let i = 0; i < maxIdx; i++) {
+      if (liveChunkBuffers[i] !== undefined && liveChunkBuffers[i].length > 0) {
+        parts.push(liveChunkBuffers[i]);
+      }
     }
-    liveStreamedText += data.token;
-    targetEditor.value = liveStreamedText;
-    
+    const liveMarkdown = parts.join('\n\n');
+    targetEditor.value = liveMarkdown;
+
     // Live update preview
     if (currentViewMode === 'rendered') {
-      renderTargetMarkdown(liveStreamedText, false);
+      renderTargetMarkdown(liveMarkdown, false);
     }
   } else if (type === 'complete') {
-    liveStreamedText = '';
+    liveChunkBuffers = {};
+    liveTotalChunks = 0;
     currentTranslatedText = data.translatedContent;
     targetEditor.value = currentTranslatedText;
     renderTargetMarkdown(currentTranslatedText, true);

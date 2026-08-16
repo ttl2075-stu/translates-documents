@@ -35,23 +35,26 @@ $$
     style: 'technical',
   });
 
-  // Verify that code block is masked and not present in prose
+  // Verify that chunks are created for separate blocks
   assert.ok(parsed.chunks.length >= 1);
-  const chunk = parsed.chunks[0];
-  assert.ok(chunk.maskedText.includes('[[_MASK_FRONTMATTER_'));
-  assert.ok(chunk.maskedText.includes('[[_MASK_FENCE_CODE_'));
-  assert.ok(chunk.maskedText.includes('[[_MASK_INLINE_CODE_'));
-  assert.ok(chunk.maskedText.includes('[[_MASK_MATH_INLINE_'));
-  assert.ok(chunk.maskedText.includes('[[_MASK_MATH_BLOCK_'));
-  assert.ok(chunk.maskedText.includes('[[_MASK_LINK_TARGET_'));
+  const allMaskedText = parsed.chunks.map((c) => c.maskedText).join('\n\n');
+  assert.ok(allMaskedText.includes('[[_MASK_FRONTMATTER_'));
+  assert.ok(allMaskedText.includes('[[_MASK_FENCE_CODE_'));
+  assert.ok(allMaskedText.includes('[[_MASK_INLINE_CODE_'));
+  assert.ok(allMaskedText.includes('[[_MASK_MATH_INLINE_'));
+  assert.ok(allMaskedText.includes('[[_MASK_MATH_BLOCK_'));
+  assert.ok(allMaskedText.includes('[[_MASK_LINK_TARGET_'));
 
-  // Simulate LLM translation on text around masks
-  const translatedMaskedText = chunk.maskedText
-    .replace('This is regular text with', 'Đây là văn bản thông thường với')
-    .replace('Check out', 'Hãy xem');
+  // Simulate LLM translation on text chunks
+  const translatedChunks = parsed.chunks.map((c) => ({
+    ...c,
+    translatedText: c.maskedText
+      .replace('This is regular text with', 'Đây là văn bản thông thường với')
+      .replace('Check out', 'Hãy xem'),
+  }));
 
   const unmasked = await adapter.unmaskAndSerialize(
-    [{ ...chunk, translatedText: translatedMaskedText }],
+    translatedChunks,
     parsed.state
   );
 

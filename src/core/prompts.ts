@@ -54,8 +54,9 @@ CRITICAL RULES FOR STRUCTURE & SYNTAX PRESERVATION:
    - Keep all structural formatting intact: Headers (#, ##, ###), bold (**text**), italic (*text*), blockquotes (>), list markers (-, *, 1.), table delimiters (|), horizontal rules (---).
    - Do NOT add or remove markdown headers, table columns, or list nesting.
    - Do NOT wrap the entire output in extra markdown code fences like \`\`\`markdown or \`\`\` unless it was in the input.
-3. PRESERVE WHITESPACE & INDENTATION:
-   - Keep blank lines and indentation precisely as formatted.
+3. PRESERVE PARAGRAPHS, LINE BREAKS & INDENTATION:
+   - Maintain the exact paragraph boundaries, line breaks, and indentation.
+   - Do NOT merge separate paragraphs or list items into a single run-on block.
 `;
 
   if (customGlossary && Object.keys(customGlossary).length > 0) {
