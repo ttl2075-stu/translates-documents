@@ -1,5 +1,5 @@
 /**
- * Auth Client Module - Handles Authentication, Registration, Forgot Password and User State
+ * Auth Client Module - Handles Authentication, Registration, Forgot Password, Google Linking and User State
  */
 
 const AuthState = {
@@ -27,12 +27,11 @@ async function initAuth() {
   if (oauthToken) {
     AuthState.token = oauthToken;
     localStorage.setItem('auth_token', oauthToken);
-    // Clean URL query parameters
     window.history.replaceState({}, document.title, window.location.pathname);
-    showToast('Đăng nhập bằng tài khoản Google thành công!', 'success');
+    window.Dialog.toast('Đăng nhập bằng tài khoản Google thành công!', 'success');
   } else if (oauthError) {
     window.history.replaceState({}, document.title, window.location.pathname);
-    showToast('Đăng nhập Google thất bại: ' + oauthError, 'error');
+    window.Dialog.toast('Đăng nhập Google thất bại: ' + oauthError, 'error');
   }
 
   // Initialize Google Identity Services SDK
@@ -100,6 +99,13 @@ async function initGoogleAuth() {
 async function handleGoogleCredentialResponse(response) {
   if (!response || !response.credential) return;
 
+  // If user is currently in profile modal linking Google account:
+  const isLinking = document.getElementById('profile-modal')?.classList.contains('flex');
+  if (isLinking && AuthState.user) {
+    await linkGoogleAccount(response.credential);
+    return;
+  }
+
   try {
     const res = await fetch('/api/auth/google', {
       method: 'POST',
@@ -115,21 +121,86 @@ async function handleGoogleCredentialResponse(response) {
       localStorage.setItem('auth_token', data.token);
       updateAuthUI(data.user, data.subscription);
       closeAuthModal();
-      showToast('Đăng nhập bằng tài khoản Google thành công!', 'success');
+      window.Dialog.toast('Đăng nhập bằng tài khoản Google thành công!', 'success');
       if (typeof reloadJobsHistory === 'function') {
         reloadJobsHistory();
       }
     } else {
-      showToast(data.error || 'Đăng nhập Google thất bại.', 'error');
+      window.Dialog.toast(data.error || 'Đăng nhập Google thất bại.', 'error');
     }
   } catch (err) {
-    showToast('Lỗi kết nối máy chủ khi đăng nhập Google.', 'error');
+    window.Dialog.toast('Lỗi kết nối máy chủ khi đăng nhập Google.', 'error');
   }
 }
 
 // Fallback direct redirect flow
 function loginWithGoogleRedirect() {
   window.location.href = '/api/auth/google';
+}
+
+// Link Google Account for authenticated user
+async function linkGoogleAccount(idToken) {
+  try {
+    const res = await fetch('/api/auth/google/link', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ idToken }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      AuthState.user = data.user;
+      updateAuthUI(AuthState.user, AuthState.subscription);
+      openProfileModal();
+      window.Dialog.toast('Liên kết tài khoản Google thành công!', 'success');
+    } else {
+      window.Dialog.alert('Không thể liên kết', data.error || 'Thao tác thất bại.', 'error');
+    }
+  } catch (err) {
+    window.Dialog.alert('Lỗi', 'Lỗi kết nối máy chủ khi liên kết Google.', 'error');
+  }
+}
+
+// Click handler for "Liên kết tài khoản Google" button
+async function handleLinkGoogleClick() {
+  if (window.google && window.google.accounts && window.google.accounts.id) {
+    window.google.accounts.id.prompt((notification) => {
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        loginWithGoogleRedirect();
+      }
+    });
+  } else {
+    loginWithGoogleRedirect();
+  }
+}
+
+// Click handler for "Hủy liên kết Google" button
+async function handleUnlinkGoogleClick() {
+  const confirmed = await window.Dialog.confirm({
+    title: 'Hủy liên kết Google',
+    message: 'Bạn có chắc chắn muốn gỡ liên kết tài khoản Google khỏi tài khoản này?',
+    confirmText: 'Gỡ liên kết',
+    isDestructive: true,
+  });
+
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch('/api/auth/google/unlink', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    const data = await res.json();
+    if (data.success) {
+      AuthState.user = data.user;
+      updateAuthUI(AuthState.user, AuthState.subscription);
+      openProfileModal();
+      window.Dialog.toast('Đã hủy liên kết Google thành công.', 'success');
+    } else {
+      window.Dialog.alert('Lỗi', data.error || 'Không thể hủy liên kết Google.', 'error');
+    }
+  } catch (err) {
+    window.Dialog.alert('Lỗi', err.message, 'error');
+  }
 }
 
 // Update Header UI based on user session
@@ -139,13 +210,22 @@ function updateAuthUI(user, subscription) {
   const adminBtn = document.getElementById('btn-admin-panel');
   const subBadge = document.getElementById('user-sub-badge');
   const userNameEl = document.getElementById('user-display-name');
-  const userQuotaBar = document.getElementById('user-quota-bar');
-  const userQuotaText = document.getElementById('user-quota-text');
+  const userAvatarCircle = document.getElementById('user-avatar-circle');
 
   if (user) {
     if (guestArea) guestArea.classList.add('hidden');
     if (userArea) userArea.classList.remove('hidden');
     if (userNameEl) userNameEl.textContent = user.name || user.email.split('@')[0];
+
+    // Display Avatar if available
+    if (userAvatarCircle) {
+      if (user.avatarUrl) {
+        userAvatarCircle.innerHTML = `<img src="${user.avatarUrl}" alt="Avatar" class="w-full h-full object-cover rounded-full" referrerpolicy="no-referrer">`;
+      } else {
+        const firstLetter = (user.name || user.email)[0].toUpperCase();
+        userAvatarCircle.textContent = firstLetter;
+      }
+    }
 
     // Show Admin button if admin
     if (adminBtn) {
@@ -156,40 +236,30 @@ function updateAuthUI(user, subscription) {
       }
     }
 
-    // Update Subscription Badge & Quota
+    // Update Subscription Badge
     if (subscription && subBadge) {
       subBadge.textContent = subscription.badge || subscription.planName;
-      if (subscription.planId === 'enterprise') {
-        subBadge.className = 'px-2 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-700 rounded-full border border-purple-300';
-      } else if (subscription.planId === 'pro') {
-        subBadge.className = 'px-2 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full border border-amber-300';
-      } else {
-        subBadge.className = 'px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-700 rounded-full border border-slate-300';
-      }
-
-      if (userQuotaBar && userQuotaText) {
-        const used = subscription.charsUsedMonth || 0;
-        const limit = subscription.charLimitMonthly || 20000;
-        const percent = Math.min(100, Math.round((used / limit) * 100));
-        userQuotaBar.style.width = `${percent}%`;
-        userQuotaText.textContent = `${used.toLocaleString()} / ${limit.toLocaleString()} ký tự`;
-      }
     }
   } else {
     if (guestArea) guestArea.classList.remove('hidden');
     if (userArea) userArea.classList.add('hidden');
     if (adminBtn) adminBtn.classList.add('hidden');
+    if (subBadge) subBadge.textContent = 'Miễn phí';
   }
 }
 
-// Open Auth Modal (login / register)
-function openAuthModal(mode = 'login') {
-  const modal = document.getElementById('auth-modal');
-  if (!modal) return;
+// Open/Close Auth Modal
+let currentAuthTab = 'login';
+let forgotStep = 1;
+let forgotEmail = '';
 
-  switchAuthTab(mode);
-  modal.classList.remove('hidden');
-  modal.classList.add('flex');
+function openAuthModal(tab = 'login') {
+  const modal = document.getElementById('auth-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    switchAuthTab(tab);
+  }
 }
 
 function closeAuthModal() {
@@ -201,48 +271,57 @@ function closeAuthModal() {
 }
 
 function switchAuthTab(tab) {
+  currentAuthTab = tab;
   const loginForm = document.getElementById('auth-login-form');
   const registerForm = document.getElementById('auth-register-form');
   const forgotForm = document.getElementById('auth-forgot-form');
-  const tabLogin = document.getElementById('tab-btn-login');
-  const tabRegister = document.getElementById('tab-btn-register');
 
-  if (!loginForm || !registerForm || !forgotForm) return;
+  const tabLoginBtn = document.getElementById('tab-btn-login');
+  const tabRegBtn = document.getElementById('tab-btn-register');
 
-  loginForm.classList.add('hidden');
-  registerForm.classList.add('hidden');
-  forgotForm.classList.add('hidden');
+  const activeTabClass = 'flex-1 py-2 text-xs font-bold text-blue-600 border-b-2 border-blue-600 transition-colors';
+  const inactiveTabClass = 'flex-1 py-2 text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors';
 
-  if (tabLogin) tabLogin.className = 'flex-1 py-2 font-bold text-sm text-slate-500 border-b-2 border-transparent';
-  if (tabRegister) tabRegister.className = 'flex-1 py-2 font-bold text-sm text-slate-500 border-b-2 border-transparent';
+  if (loginForm) loginForm.classList.toggle('hidden', tab !== 'login');
+  if (registerForm) registerForm.classList.toggle('hidden', tab !== 'register');
+  if (forgotForm) forgotForm.classList.toggle('hidden', tab !== 'forgot');
 
-  const socialSection = document.getElementById('auth-social-section');
-
-  if (tab === 'login') {
-    loginForm.classList.remove('hidden');
-    if (tabLogin) tabLogin.className = 'flex-1 py-2 font-bold text-sm text-blue-600 border-b-2 border-blue-600';
-    if (socialSection) socialSection.classList.remove('hidden');
-  } else if (tab === 'register') {
-    registerForm.classList.remove('hidden');
-    if (tabRegister) tabRegister.className = 'flex-1 py-2 font-bold text-sm text-blue-600 border-b-2 border-blue-600';
-    if (socialSection) socialSection.classList.remove('hidden');
-  } else if (tab === 'forgot') {
-    forgotForm.classList.remove('hidden');
-    if (socialSection) socialSection.classList.add('hidden');
+  if (tabLoginBtn && tabRegBtn) {
+    if (tab === 'login') {
+      tabLoginBtn.className = activeTabClass;
+      tabRegBtn.className = inactiveTabClass;
+    } else if (tab === 'register') {
+      tabLoginBtn.className = inactiveTabClass;
+      tabRegBtn.className = activeTabClass;
+    } else {
+      tabLoginBtn.className = inactiveTabClass;
+      tabRegBtn.className = inactiveTabClass;
+    }
   }
+
+  // Clear error messages
+  const errLogin = document.getElementById('login-error-msg');
+  const errReg = document.getElementById('reg-error-msg');
+  const errForgot = document.getElementById('forgot-msg');
+  if (errLogin) errLogin.classList.add('hidden');
+  if (errReg) errReg.classList.add('hidden');
+  if (errForgot) errForgot.classList.add('hidden');
 }
 
-// Handle Login submit
-async function handleLoginSubmit(e) {
+// Handle Login Submit
+async function handleLogin(e) {
   e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-password').value;
+  const emailInput = document.getElementById('login-email');
+  const passInput = document.getElementById('login-pass');
   const btn = document.getElementById('btn-submit-login');
-  const errorEl = document.getElementById('login-error-msg');
+  const errorMsg = document.getElementById('login-error-msg');
 
-  if (errorEl) errorEl.classList.add('hidden');
+  const email = emailInput.value.trim();
+  const password = passInput.value;
+
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng nhập...';
+  if (errorMsg) errorMsg.classList.add('hidden');
 
   try {
     const res = await fetch('/api/auth/login', {
@@ -259,20 +338,20 @@ async function handleLoginSubmit(e) {
       localStorage.setItem('auth_token', data.token);
       updateAuthUI(data.user, data.subscription);
       closeAuthModal();
-      showToast('Đăng nhập thành công!', 'success');
+      window.Dialog.toast(`Chào mừng ${data.user.name || data.user.email}!`, 'success');
       if (typeof reloadJobsHistory === 'function') {
         reloadJobsHistory();
       }
     } else {
-      if (errorEl) {
-        errorEl.textContent = data.error || 'Đăng nhập thất bại.';
-        errorEl.classList.remove('hidden');
+      if (errorMsg) {
+        errorMsg.textContent = data.error || 'Đăng nhập thất bại.';
+        errorMsg.classList.remove('hidden');
       }
     }
   } catch (err) {
-    if (errorEl) {
-      errorEl.textContent = 'Lỗi kết nối máy chủ: ' + err.message;
-      errorEl.classList.remove('hidden');
+    if (errorMsg) {
+      errorMsg.textContent = 'Lỗi kết nối máy chủ.';
+      errorMsg.classList.remove('hidden');
     }
   } finally {
     btn.disabled = false;
@@ -280,18 +359,22 @@ async function handleLoginSubmit(e) {
   }
 }
 
-// Handle Register submit
-async function handleRegisterSubmit(e) {
+// Handle Register Submit
+async function handleRegister(e) {
   e.preventDefault();
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const password = document.getElementById('reg-password').value;
-  const btn = document.getElementById('btn-submit-register');
-  const errorEl = document.getElementById('reg-error-msg');
+  const nameInput = document.getElementById('reg-name');
+  const emailInput = document.getElementById('reg-email');
+  const passInput = document.getElementById('reg-pass');
+  const btn = document.getElementById('btn-submit-reg');
+  const errorMsg = document.getElementById('reg-error-msg');
 
-  if (errorEl) errorEl.classList.add('hidden');
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim();
+  const password = passInput.value;
+
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạo tài khoản...';
+  if (errorMsg) errorMsg.classList.add('hidden');
 
   try {
     const res = await fetch('/api/auth/register', {
@@ -308,44 +391,37 @@ async function handleRegisterSubmit(e) {
       localStorage.setItem('auth_token', data.token);
       updateAuthUI(data.user, data.subscription);
       closeAuthModal();
-      showToast('Đăng ký thành công! Bạn nhận được 20.000 ký tự miễn phí.', 'success');
-      if (typeof reloadJobsHistory === 'function') {
-        reloadJobsHistory();
-      }
+      window.Dialog.toast('Đăng ký tài khoản thành công! Nhận 20.000 ký tự miễn phí.', 'success');
     } else {
-      if (errorEl) {
-        errorEl.textContent = data.error || 'Đăng ký thất bại.';
-        errorEl.classList.remove('hidden');
+      if (errorMsg) {
+        errorMsg.textContent = data.error || 'Đăng ký thất bại.';
+        errorMsg.classList.remove('hidden');
       }
     }
   } catch (err) {
-    if (errorEl) {
-      errorEl.textContent = 'Lỗi kết nối máy chủ: ' + err.message;
-      errorEl.classList.remove('hidden');
+    if (errorMsg) {
+      errorMsg.textContent = 'Lỗi kết nối máy chủ.';
+      errorMsg.classList.remove('hidden');
     }
   } finally {
     btn.disabled = false;
-    btn.innerHTML = 'Đăng ký tài khoản';
+    btn.innerHTML = 'Tạo tài khoản & Bắt đầu';
   }
 }
 
-// Handle Forgot Password OTP flow
-let forgotStep = 1;
-let forgotEmail = '';
-
-async function handleForgotSubmit(e) {
+// Handle Forgot Password Submit
+async function handleForgotPassword(e) {
   e.preventDefault();
   const emailInput = document.getElementById('forgot-email');
   const otpInput = document.getElementById('forgot-otp');
-  const newPassInput = document.getElementById('forgot-new-password');
-  const step1Div = document.getElementById('forgot-step-1');
-  const step2Div = document.getElementById('forgot-step-2');
+  const newPassInput = document.getElementById('forgot-new-pass');
   const btn = document.getElementById('btn-submit-forgot');
   const msgEl = document.getElementById('forgot-msg');
-
-  if (msgEl) msgEl.classList.add('hidden');
+  const step1Div = document.getElementById('forgot-step-1');
+  const step2Div = document.getElementById('forgot-step-2');
 
   if (forgotStep === 1) {
+    // Step 1: Request OTP
     forgotEmail = emailInput.value.trim();
     if (!forgotEmail) return;
 
@@ -364,16 +440,16 @@ async function handleForgotSubmit(e) {
         forgotStep = 2;
         step1Div.classList.add('hidden');
         step2Div.classList.remove('hidden');
-        btn.innerHTML = 'Đặt lại mật khẩu mới';
+        btn.innerHTML = 'Xác nhận đổi mật khẩu';
         if (msgEl) {
-          msgEl.className = 'text-xs text-green-600 bg-green-50 p-2 rounded border border-green-200';
+          msgEl.className = 'text-xs text-blue-600 bg-blue-50 p-2 rounded border border-blue-200';
           msgEl.textContent = data.message;
           msgEl.classList.remove('hidden');
         }
       } else {
         if (msgEl) {
           msgEl.className = 'text-xs text-red-600 bg-red-50 p-2 rounded border border-red-200';
-          msgEl.textContent = data.error || 'Không thể gửi mã xác nhận.';
+          msgEl.textContent = data.error || 'Không thể gửi mã.';
           msgEl.classList.remove('hidden');
         }
       }
@@ -403,7 +479,7 @@ async function handleForgotSubmit(e) {
       const data = await res.json();
 
       if (data.success) {
-        showToast('Đặt lại mật khẩu thành công! Vui lòng đăng nhập.', 'success');
+        window.Dialog.toast('Đặt lại mật khẩu thành công! Vui lòng đăng nhập.', 'success');
         forgotStep = 1;
         step1Div.classList.remove('hidden');
         step2Div.classList.add('hidden');
@@ -435,7 +511,7 @@ function logout(notify = true) {
   localStorage.removeItem('auth_token');
   updateAuthUI(null, null);
   if (notify) {
-    showToast('Đã đăng xuất tài khoản.', 'info');
+    window.Dialog.toast('Đã đăng xuất tài khoản.', 'info');
   }
 }
 
@@ -452,9 +528,25 @@ function openProfileModal() {
   const planName = document.getElementById('prof-plan-name');
   const quotaText = document.getElementById('prof-quota-text');
   const expireText = document.getElementById('prof-expire-text');
+  const googleStatus = document.getElementById('prof-google-status');
+  const btnLinkGoogle = document.getElementById('btn-link-google');
+  const btnUnlinkGoogle = document.getElementById('btn-unlink-google');
 
   if (nameInput) nameInput.value = AuthState.user.name || '';
   if (emailInput) emailInput.value = AuthState.user.email || '';
+
+  // Google status & action toggles
+  if (googleStatus && btnLinkGoogle && btnUnlinkGoogle) {
+    if (AuthState.user.googleId) {
+      googleStatus.innerHTML = '<span class="text-emerald-600 flex items-center gap-1"><i class="fa-solid fa-circle-check"></i> Đã liên kết</span>';
+      btnLinkGoogle.classList.add('hidden');
+      btnUnlinkGoogle.classList.remove('hidden');
+    } else {
+      googleStatus.innerHTML = '<span class="text-slate-400">Chưa liên kết</span>';
+      btnLinkGoogle.classList.remove('hidden');
+      btnUnlinkGoogle.classList.add('hidden');
+    }
+  }
 
   if (AuthState.subscription) {
     const sub = AuthState.subscription;
@@ -485,45 +577,45 @@ function closeProfileModal() {
 
 async function handleProfileSave(e) {
   e.preventDefault();
-  const name = document.getElementById('prof-name').value.trim();
-  const currentPassword = document.getElementById('prof-curr-pass').value;
-  const newPassword = document.getElementById('prof-new-pass').value;
+  const nameInput = document.getElementById('prof-name');
+  const currPassInput = document.getElementById('prof-curr-pass');
+  const newPassInput = document.getElementById('prof-new-pass');
+  const errorMsg = document.getElementById('prof-error-msg');
   const btn = document.getElementById('btn-save-profile');
-  const errorEl = document.getElementById('prof-error-msg');
 
-  if (errorEl) errorEl.classList.add('hidden');
+  const name = nameInput.value.trim();
+  const currentPassword = currPassInput.value;
+  const newPassword = newPassInput.value;
+
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu...';
+  if (errorMsg) errorMsg.classList.add('hidden');
 
   try {
-    const payload = { name };
-    if (newPassword) {
-      payload.currentPassword = currentPassword;
-      payload.newPassword = newPassword;
-    }
-
     const res = await fetch('/api/auth/profile', {
       method: 'PUT',
       headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ name, currentPassword, newPassword }),
     });
     const data = await res.json();
 
     if (data.success) {
       AuthState.user = data.user;
       updateAuthUI(data.user, AuthState.subscription);
+      currPassInput.value = '';
+      newPassInput.value = '';
       closeProfileModal();
-      showToast('Cập nhật thông tin thành công!', 'success');
+      window.Dialog.toast('Cập nhật thông tin tài khoản thành công!', 'success');
     } else {
-      if (errorEl) {
-        errorEl.textContent = data.error || 'Cập nhật thất bại.';
-        errorEl.classList.remove('hidden');
+      if (errorMsg) {
+        errorMsg.textContent = data.error || 'Cập nhật thất bại.';
+        errorMsg.classList.remove('hidden');
       }
     }
   } catch (err) {
-    if (errorEl) {
-      errorEl.textContent = 'Lỗi kết nối máy chủ: ' + err.message;
-      errorEl.classList.remove('hidden');
+    if (errorMsg) {
+      errorMsg.textContent = 'Lỗi kết nối máy chủ.';
+      errorMsg.classList.remove('hidden');
     }
   } finally {
     btn.disabled = false;
@@ -531,7 +623,7 @@ async function handleProfileSave(e) {
   }
 }
 
-// Initialize on DOM ready
+// Auto-run on script load
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
 });

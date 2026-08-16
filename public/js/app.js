@@ -1,82 +1,5 @@
-// Academic & Scientific Research Sample Document with Math, Images & Citations
-const SAMPLE_RESEARCH_PAPER = `---
-title: "Self-Supervised Contrastive Learning in Deep Neural Networks: An Empirical Study"
-authors: ["Alex Morgan", "Elena Vance", "David Chen"]
-conference: "IEEE Transactions on Pattern Analysis and Machine Intelligence (TPAMI)"
-year: 2026
-doi: "10.1109/TPAMI.2026.884120"
----
-
-# Abstract
-
-Self-supervised representation learning has emerged as a cornerstone in modern computer vision and natural language processing. In this paper, we propose a novel contrastive loss formulation termed **Adaptive InfoNCE**, which dynamically scales the temperature parameter based on sample difficulty. Our empirical evaluations across ImageNet-1K and GLUE benchmarks show statistically significant improvements ($p < 0.001$) over standard baseline architectures.
-
-## 1. Mathematical Formulation & Optimization
-
-Given an augmented pair of positive sample representations $(z_i, z_j)$ and a set of negative keys $\{z_k\}_{k=1}^{K}$, the Adaptive InfoNCE loss is formulated as:
-
-$$\\mathcal{L}_{\\text{Adaptive}} = -\\log \\frac{\\exp\\left(\\frac{\\text{sim}(z_i, z_j)}{\\tau_i}\\right)}{\\exp\\left(\\frac{\\text{sim}(z_i, z_j)}{\\tau_i}\\right) + \\sum_{k=1}^{K} \\exp\\left(\\frac{\\text{sim}(z_i, z_k)}{\\tau_i}\\right)}$$
-
-Where the sample-dependent temperature factor satisfies:
-
-$$\\tau_i = \\tau_0 \\cdot \\left(1 + \\alpha \\cdot \\|z_i - \\bar{z}\\|_2^2\\right)$$
-
-Với đạo hàm tương ứng: $\\frac{\\partial \\mathcal{L}}{\\partial z_i} = \\frac{1}{\\tau_i} \\sum_{k=1}^{K} P(k) (z_k - z_j)$.
-
-## 2. Model Architecture & Pipeline Overview
-
-Dưới đây là sơ đồ tổng quan quy trình huấn luyện học tự giám sát:
-
-![Kiến Trúc Mô Hình Adaptive Contrastive Learning](https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1000&q=80 "Sơ đồ kiến trúc học tăng cường tương phản")
-
-*Hình 1: Luồng xử lý biểu diễn không gian đặc trưng giữa các cặp dữ liệu tương đồng.*
-
-## 3. Experimental Benchmark Results (Ablation Study)
-
-Bảng so sánh hiệu năng trên tập kiểm thử ImageNet-1K:
-
-| Model Architecture | Top-1 Accuracy (%) | Top-5 Accuracy (%) | Training Latency (ms/step) | $p$-value |
-| :--- | :--- | :--- | :--- | :--- |
-| **SimCLR v2 (Baseline)** | $76.8 \\pm 0.2$ | $93.4 \\pm 0.1$ | $142.5$ | - |
-| **MoCo v3** | $78.1 \\pm 0.3$ | $94.1 \\pm 0.2$ | $138.0$ | $0.024$ |
-| **Adaptive InfoNCE (Ours)** | $\\mathbf{80.4} \\pm 0.2$ | $\\mathbf{95.7} \\pm 0.1$ | $\\mathbf{126.4}$ | $< 0.001$ |
-
-## 4. PyTorch Implementation Snippet
-
-\`\`\`python
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-class AdaptiveInfoNCELoss(nn.Module):
-    def __init__(self, tau_0: float = 0.07, alpha: float = 0.5):
-        super().__init__()
-        self.tau_0 = tau_0
-        self.alpha = alpha
-
-    def forward(self, q: torch.Tensor, k: torch.Tensor, queue: torch.Tensor) -> torch.Tensor:
-        pos_sim = torch.sum(q * k, dim=-1, keepdim=True)
-        neg_sim = torch.matmul(q, queue.T)
-        logits = torch.cat([pos_sim, neg_sim], dim=-1)
-        
-        norm_diff = torch.norm(q - q.mean(dim=0), p=2, dim=-1, keepdim=True)
-        tau = self.tau_0 * (1.0 + self.alpha * torch.square(norm_diff))
-        
-        labels = torch.zeros(q.size(0), dtype=torch.long, device=q.device)
-        return F.cross_entropy(logits / tau, labels)
-\`\`\`
-
-> **Định lý 1 (Hội tụ tiệm cận)**: Dưới các giả định về độ trơn Lipschitz trên bộ mã hóa $f_\\theta$, phương sai của gradient giảm với tốc độ tiệm cận $\\mathcal{O}(1/\\sqrt{N})$.
-
-Tham khảo mã nguồn tại [Kho lưu trữ dự án GitHub](https://github.com/ai-research/adaptive-infonce "Adaptive InfoNCE GitHub").
-
-## 5. References & Citations
-- [1] K. He et al., "Momentum Contrast for Unsupervised Visual Representation Learning," in *Proc. CVPR*, 2020.
-- [2] T. Chen et al., "A Simple Framework for Contrastive Learning of Visual Representations," in *Proc. ICML*, 2020.
-`;
-
 // App State
-let currentSourceFilename = 'adaptive_infonce_paper.md';
+let currentSourceFilename = 'document.md';
 let currentTranslatedText = '';
 let liveChunkBuffers = {};
 let liveTotalChunks = 0;
@@ -121,11 +44,10 @@ const btnClearCache = document.getElementById('btn-clear-cache');
 const btnStartTranslate = document.getElementById('btn-start-translate');
 const translateBtnText = document.getElementById('translate-btn-text');
 const translateIcon = document.getElementById('translate-icon');
-const btnLoadSample = document.getElementById('btn-load-sample');
 const btnClearSource = document.getElementById('btn-clear-source');
 const btnCopyTarget = document.getElementById('btn-copy-target');
 const btnDownloadTarget = document.getElementById('btn-download-target');
-const btnPrintPreview = document.getElementById('btn-print-preview');
+const btnPrintPreview = document.getElementById('btnPrintPreview');
 const btnFullscreenTarget = document.getElementById('btn-fullscreen-target');
 const fullscreenIcon = document.getElementById('fullscreen-icon');
 const btnToggleToc = document.getElementById('btn-toggle-toc');
@@ -365,14 +287,7 @@ function setupEventListeners() {
     }
   });
 
-  // Sample and Clear buttons
-  btnLoadSample.addEventListener('click', () => {
-    sourceEditor.value = SAMPLE_RESEARCH_PAPER;
-    currentSourceFilename = 'adaptive_infonce_paper.md';
-    updateSourceStats();
-    showToast('Đã nạp bài báo khoa học mẫu (LaTeX & Ảnh)!');
-  });
-
+  // Clear button
   btnClearSource.addEventListener('click', () => {
     sourceEditor.value = '';
     targetEditor.value = '';
@@ -1614,33 +1529,47 @@ function renderJobsList(jobs) {
 }
 
 async function abortJob(jobId) {
-  if (!confirm('Bạn có chắc chắn muốn ngắt và hủy tiến trình dịch này?')) return;
+  const confirmed = await window.Dialog.confirm({
+    title: 'Hủy tiến trình dịch',
+    message: 'Bạn có chắc chắn muốn ngắt và hủy tiến trình dịch này?',
+    confirmText: 'Hủy tiến trình',
+    isDestructive: true,
+  });
+  if (!confirmed) return;
 
   try {
     const res = await fetch(`/api/jobs/${jobId}/abort`, { method: 'POST' });
     const data = await res.json();
     if (res.ok && data.success) {
-      showToast('Đã hủy tiến trình thành công!');
+      window.Dialog.toast('Đã hủy tiến trình thành công!', 'success');
       loadJobsList();
       refreshActiveJobsCount();
     } else {
-      showToast(data.message || 'Không thể hủy tiến trình', true);
+      window.Dialog.toast(data.message || 'Không thể hủy tiến trình', 'error');
     }
   } catch (err) {
-    showToast('Lỗi khi hủy tiến trình: ' + err.message, true);
+    window.Dialog.toast('Lỗi khi hủy tiến trình: ' + err.message, 'error');
   }
 }
 
 async function deleteJob(jobId) {
+  const confirmed = await window.Dialog.confirm({
+    title: 'Xóa tiến trình',
+    message: 'Bạn có chắc chắn muốn xóa tiến trình này khỏi danh sách?',
+    confirmText: 'Xóa',
+    isDestructive: true,
+  });
+  if (!confirmed) return;
+
   try {
     const res = await fetch(`/api/jobs/${jobId}`, { method: 'DELETE' });
     if (res.ok) {
-      showToast('Đã xóa tiến trình khỏi danh sách');
+      window.Dialog.toast('Đã xóa tiến trình khỏi danh sách', 'info');
       loadJobsList();
       refreshActiveJobsCount();
     }
   } catch (err) {
-    showToast('Lỗi khi xóa tiến trình: ' + err.message, true);
+    window.Dialog.toast('Lỗi khi xóa tiến trình: ' + err.message, 'error');
   }
 }
 
