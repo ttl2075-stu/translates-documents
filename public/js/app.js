@@ -51,7 +51,7 @@ const translateIcon = document.getElementById('translate-icon');
 const btnClearSource = document.getElementById('btn-clear-source');
 const btnCopyTarget = document.getElementById('btn-copy-target');
 const btnDownloadTarget = document.getElementById('btn-download-target');
-const btnPrintPreview = document.getElementById('btnPrintPreview');
+const btnPrintPreview = document.getElementById('btn-print-preview');
 const btnFullscreenTarget = document.getElementById('btn-fullscreen-target');
 const fullscreenIcon = document.getElementById('fullscreen-icon');
 const btnToggleToc = document.getElementById('btn-toggle-toc');
@@ -146,41 +146,42 @@ function updateFeatureSwitchesFromSubscription() {
 // -------------------------------------------------------------
 function setupEventListeners() {
   // Source text changes
-  sourceEditor.addEventListener('input', updateSourceStats);
+  if (sourceEditor) {
+    sourceEditor.addEventListener('input', updateSourceStats);
+  }
 
   // Target / Translated text live editing by user
-  targetEditor.addEventListener('input', () => {
-    currentTranslatedText = targetEditor.value;
-    updateTargetStats(currentTranslatedText.length, 'Đã chỉnh sửa ✏️');
-    renderTargetMarkdown(currentTranslatedText, true);
-    renderDiffView(sourceEditor.value, currentTranslatedText);
-  });
+  if (targetEditor) {
+    targetEditor.addEventListener('input', () => {
+      currentTranslatedText = targetEditor.value;
+      updateTargetStats(currentTranslatedText.length, 'Đã chỉnh sửa ✏️');
+      renderTargetMarkdown(currentTranslatedText, true);
+      renderDiffView(sourceEditor ? sourceEditor.value : '', currentTranslatedText);
+    });
 
-  // Track selection in targetEditor
-  targetEditor.addEventListener('select', handleEditorSelection);
-  targetEditor.addEventListener('mouseup', handleEditorSelection);
-  targetEditor.addEventListener('keyup', handleEditorSelection);
+    // Track selection in targetEditor
+    targetEditor.addEventListener('select', handleEditorSelection);
+    targetEditor.addEventListener('mouseup', handleEditorSelection);
+    targetEditor.addEventListener('keyup', handleEditorSelection);
+  }
 
   // Track selection in targetPreview
-  targetPreview.addEventListener('mouseup', handlePreviewSelection);
+  if (targetPreview) {
+    targetPreview.addEventListener('mouseup', handlePreviewSelection);
+  }
 
   // AI Refine Modal Triggers
-  btnOpenRefineModal.addEventListener('click', () => {
-    if (tabRaw.classList.contains('text-slate-500')) {
-      // If currently in preview mode, switch to raw or keep selection
-      openRefineModal();
-    } else {
-      openRefineModal();
-    }
-  });
+  if (btnOpenRefineModal) {
+    btnOpenRefineModal.addEventListener('click', openRefineModal);
+  }
 
   if (floatingRefineBtn) {
     floatingRefineBtn.addEventListener('click', openRefineModal);
   }
 
-  btnCloseRefineModal.addEventListener('click', closeRefineModal);
-  btnCancelRefine.addEventListener('click', closeRefineModal);
-  btnExecuteRefine.addEventListener('click', executeRefine);
+  if (btnCloseRefineModal) btnCloseRefineModal.addEventListener('click', closeRefineModal);
+  if (btnCancelRefine) btnCancelRefine.addEventListener('click', closeRefineModal);
+  if (btnExecuteRefine) btnExecuteRefine.addEventListener('click', executeRefine);
 
   if (btnReviewFormat) {
     btnReviewFormat.addEventListener('click', handleFormatReview);
@@ -189,38 +190,48 @@ function setupEventListeners() {
   // Quick Preset Prompt Chips
   document.querySelectorAll('.btn-refine-preset').forEach((btn) => {
     btn.addEventListener('click', () => {
-      refinePromptInput.value = btn.dataset.prompt;
-      refinePromptInput.focus();
+      if (refinePromptInput) {
+        refinePromptInput.value = btn.dataset.prompt;
+        refinePromptInput.focus();
+      }
     });
   });
 
   // Close modals on clicking outside
-  refineModal.addEventListener('click', (e) => {
-    if (e.target === refineModal) closeRefineModal();
-  });
+  if (refineModal) {
+    refineModal.addEventListener('click', (e) => {
+      if (e.target === refineModal) closeRefineModal();
+    });
+  }
 
   // Toggle Input Section
-  btnToggleInput.addEventListener('click', toggleInputSection);
+  if (btnToggleInput) {
+    btnToggleInput.addEventListener('click', toggleInputSection);
+  }
 
   // Format Settings Popover
-  btnToggleFormatMenu.addEventListener('click', (e) => {
-    e.stopPropagation();
-    formatMenuPopover.classList.toggle('hidden');
-  });
+  if (btnToggleFormatMenu && formatMenuPopover) {
+    btnToggleFormatMenu.addEventListener('click', (e) => {
+      e.stopPropagation();
+      formatMenuPopover.classList.toggle('hidden');
+    });
 
-  document.addEventListener('click', (e) => {
-    if (!formatMenuPopover.contains(e.target) && e.target !== btnToggleFormatMenu) {
-      formatMenuPopover.classList.add('hidden');
-    }
-  });
+    document.addEventListener('click', (e) => {
+      if (!formatMenuPopover.contains(e.target) && e.target !== btnToggleFormatMenu) {
+        formatMenuPopover.classList.add('hidden');
+      }
+    });
+  }
 
   // Typography Controls
-  sliderFontSize.addEventListener('input', (e) => {
-    const val = parseInt(e.target.value, 10);
-    lblFontSize.textContent = `${val}px`;
-    typographySettings.fontSize = val;
-    applyTypographySettings();
-  });
+  if (sliderFontSize) {
+    sliderFontSize.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      if (lblFontSize) lblFontSize.textContent = `${val}px`;
+      typographySettings.fontSize = val;
+      applyTypographySettings();
+    });
+  }
 
   document.querySelectorAll('.btn-line-height').forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -244,41 +255,55 @@ function setupEventListeners() {
     });
   });
 
-  selectFontFamily.addEventListener('change', (e) => {
-    typographySettings.fontFamily = e.target.value;
-    applyTypographySettings();
-  });
+  if (selectFontFamily) {
+    selectFontFamily.addEventListener('change', (e) => {
+      typographySettings.fontFamily = e.target.value;
+      applyTypographySettings();
+    });
+  }
 
-  btnResetFormat.addEventListener('click', () => {
-    typographySettings.fontSize = 16;
-    typographySettings.lineHeight = 1.75;
-    typographySettings.paraSpacing = '0.9rem';
-    typographySettings.fontFamily = 'font-sans';
-    sliderFontSize.value = 16;
-    lblFontSize.textContent = '16px';
-    selectFontFamily.value = 'font-sans';
-    applyTypographySettings();
-    showToast('Đã khôi phục cài đặt hiển thị mặc định!');
-  });
+  if (btnResetFormat) {
+    btnResetFormat.addEventListener('click', () => {
+      typographySettings.fontSize = 16;
+      typographySettings.lineHeight = 1.75;
+      typographySettings.paraSpacing = '0.9rem';
+      typographySettings.fontFamily = 'font-sans';
+      if (sliderFontSize) sliderFontSize.value = 16;
+      if (lblFontSize) lblFontSize.textContent = '16px';
+      if (selectFontFamily) selectFontFamily.value = 'font-sans';
+      applyTypographySettings();
+      showToast('Đã khôi phục cài đặt hiển thị mặc định!');
+    });
+  }
 
   // Print Preview / PDF
-  btnPrintPreview.addEventListener('click', () => {
-    if (!currentTranslatedText) {
-      showToast('Chưa có nội dung để in!', true);
-      return;
-    }
-    window.print();
-  });
+  if (btnPrintPreview) {
+    btnPrintPreview.addEventListener('click', () => {
+      if (!currentTranslatedText) {
+        showToast('Chưa có nội dung để in!', true);
+        return;
+      }
+      window.print();
+    });
+  }
 
   // Open existing Markdown file to view/preview directly
-  fileOpenMarkdown.addEventListener('change', handleOpenMarkdownFile);
+  if (fileOpenMarkdown) {
+    fileOpenMarkdown.addEventListener('change', handleOpenMarkdownFile);
+  }
 
   // Fullscreen toggle
-  btnFullscreenTarget.addEventListener('click', toggleFullscreen);
+  if (btnFullscreenTarget) {
+    btnFullscreenTarget.addEventListener('click', toggleFullscreen);
+  }
 
   // Table of Contents toggle
-  btnToggleToc.addEventListener('click', toggleToc);
-  btnCloseToc.addEventListener('click', () => setTocState(false));
+  if (btnToggleToc) {
+    btnToggleToc.addEventListener('click', toggleToc);
+  }
+  if (btnCloseToc) {
+    btnCloseToc.addEventListener('click', () => setTocState(false));
+  }
 
   // Keyboard Shortcuts: Ctrl+Enter to translate or refine, Ctrl+K for AI Refine, Escape to exit
   window.addEventListener('keydown', (e) => {
@@ -296,7 +321,7 @@ function setupEventListeners() {
       if (refineModal && !refineModal.classList.contains('hidden')) closeRefineModal();
       if (isFullscreen) toggleFullscreen();
       if (isTocOpen) setTocState(false);
-      formatMenuPopover.classList.add('hidden');
+      if (formatMenuPopover) formatMenuPopover.classList.add('hidden');
       if (floatingRefineBtn) floatingRefineBtn.classList.add('hidden');
     }
   });
@@ -312,43 +337,47 @@ function setupEventListeners() {
   }
 
   // Clear button
-  btnClearSource.addEventListener('click', () => {
-    sourceEditor.value = '';
-    targetEditor.value = '';
-    currentTranslatedText = '';
-    renderTargetMarkdown('');
-    updateSourceStats();
-    updateTargetStats(0, 'Đã xóa');
-    generateTableOfContents('');
-  });
+  if (btnClearSource) {
+    btnClearSource.addEventListener('click', () => {
+      if (sourceEditor) sourceEditor.value = '';
+      if (targetEditor) targetEditor.value = '';
+      currentTranslatedText = '';
+      renderTargetMarkdown('');
+      updateSourceStats();
+      updateTargetStats(0, 'Đã xóa');
+      generateTableOfContents('');
+    });
+  }
 
   // View Switch Tabs (Rendered vs Raw vs Diff)
-  tabRendered.addEventListener('click', () => setTargetViewMode('rendered'));
-  tabRaw.addEventListener('click', () => setTargetViewMode('raw'));
-  tabDiff.addEventListener('click', () => setTargetViewMode('diff'));
+  if (tabRendered) tabRendered.addEventListener('click', () => setTargetViewMode('rendered'));
+  if (tabRaw) tabRaw.addEventListener('click', () => setTargetViewMode('raw'));
+  if (tabDiff) tabDiff.addEventListener('click', () => setTargetViewMode('diff'));
 
   // Copy & Download
-  btnCopyTarget.addEventListener('click', copyTranslatedText);
-  btnDownloadTarget.addEventListener('click', downloadTranslatedFile);
+  if (btnCopyTarget) btnCopyTarget.addEventListener('click', copyTranslatedText);
+  if (btnDownloadTarget) btnDownloadTarget.addEventListener('click', downloadTranslatedFile);
 
   // File Upload & Drag-and-Drop
-  fileUploadInput.addEventListener('change', handleFileInput);
+  if (fileUploadInput) fileUploadInput.addEventListener('change', handleFileInput);
   setupDragAndDrop();
 
   // Translation Start
-  btnStartTranslate.addEventListener('click', startTranslation);
+  if (btnStartTranslate) btnStartTranslate.addEventListener('click', startTranslation);
 
   // Clear Cache
-  btnClearCache.addEventListener('click', async () => {
-    try {
-      const res = await fetch('/api/cache/clear', { method: 'POST' });
-      const data = await res.json();
-      showToast(data.message);
-      await refreshCacheStats();
-    } catch (e) {
-      showToast('Lỗi xóa cache: ' + e.message, true);
-    }
-  });
+  if (btnClearCache) {
+    btnClearCache.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/cache/clear', { method: 'POST' });
+        const data = await res.json();
+        showToast(data.message);
+        await refreshCacheStats();
+      } catch (e) {
+        showToast('Lỗi xóa cache: ' + e.message, true);
+      }
+    });
+  }
 }
 
 // -------------------------------------------------------------
@@ -1142,13 +1171,20 @@ function downloadTranslatedFile() {
 }
 
 function showToast(message, isError = false) {
-  toastEl.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-exclamation text-red-400' : 'fa-circle-check text-emerald-400'}"></i> <span>${message}</span>`;
-  toastEl.className = `fixed bottom-6 right-6 ${isError ? 'bg-red-900' : 'bg-slate-900'} text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-xl z-50 transition-all flex items-center gap-2 animate-fade-in`;
-  toastEl.classList.remove('hidden');
+  if (typeof window !== 'undefined' && window.Dialog && typeof window.Dialog.toast === 'function') {
+    window.Dialog.toast(message, isError ? 'error' : 'success');
+    return;
+  }
+  const el = document.getElementById('toast');
+  if (el) {
+    el.innerHTML = `<i class="fa-solid ${isError ? 'fa-circle-exclamation text-red-400' : 'fa-circle-check text-emerald-400'}"></i> <span>${message}</span>`;
+    el.className = `fixed bottom-6 right-6 ${isError ? 'bg-red-900' : 'bg-slate-900'} text-white text-xs font-medium px-4 py-2.5 rounded-lg shadow-xl z-50 transition-all flex items-center gap-2 animate-fade-in`;
+    el.classList.remove('hidden');
 
-  setTimeout(() => {
-    toastEl.classList.add('hidden');
-  }, 3500);
+    setTimeout(() => {
+      el.classList.add('hidden');
+    }, 3500);
+  }
 }
 
 // -------------------------------------------------------------

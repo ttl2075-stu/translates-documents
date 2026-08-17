@@ -46,6 +46,12 @@ async function initAuth() {
     const res = await fetch('/api/auth/me', {
       headers: getAuthHeaders(),
     });
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        logout(false);
+      }
+      return;
+    }
     const data = await res.json();
     if (data.success) {
       AuthState.user = data.user;
@@ -55,7 +61,7 @@ async function initAuth() {
       logout(false);
     }
   } catch (err) {
-    console.error('Lỗi khởi tạo phiên đăng nhập:', err);
+    console.warn('Phiên đăng nhập chưa sẵn sàng:', err.message || err);
   }
 }
 
@@ -64,34 +70,39 @@ let googleClientId = '';
 async function initGoogleAuth() {
   try {
     const res = await fetch('/api/auth/google/client-id');
+    if (!res.ok) return;
     const data = await res.json();
-    if (data.success && data.clientId) {
+    if (data.success && data.clientId && data.clientId.trim().length > 0) {
       googleClientId = data.clientId;
 
       if (window.google && window.google.accounts && window.google.accounts.id) {
-        window.google.accounts.id.initialize({
-          client_id: data.clientId,
-          callback: handleGoogleCredentialResponse,
-          auto_select: false,
-          cancel_on_tap_outside: true,
-        });
-
-        const btnContainer = document.getElementById('google-btn-container');
-        if (btnContainer) {
-          btnContainer.innerHTML = '';
-          window.google.accounts.id.renderButton(btnContainer, {
-            theme: 'outline',
-            size: 'large',
-            width: 320,
-            text: 'continue_with',
-            shape: 'rectangular',
-            logo_alignment: 'left',
+        try {
+          window.google.accounts.id.initialize({
+            client_id: data.clientId,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
           });
+
+          const btnContainer = document.getElementById('google-btn-container');
+          if (btnContainer) {
+            btnContainer.innerHTML = '';
+            window.google.accounts.id.renderButton(btnContainer, {
+              theme: 'outline',
+              size: 'large',
+              width: 320,
+              text: 'continue_with',
+              shape: 'rectangular',
+              logo_alignment: 'left',
+            });
+          }
+        } catch (gsiErr) {
+          console.warn('Google GSI init skipped:', gsiErr.message);
         }
       }
     }
   } catch (err) {
-    console.warn('Google OAuth chưa được kích hoạt hoặc cấu hình:', err.message);
+    // Silent fallback if server is offline or OAuth not configured
   }
 }
 

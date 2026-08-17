@@ -5,10 +5,11 @@
 let activeOrderPollingTimer = null;
 let currentOrderCode = null;
 
-// Open Upgrade Plans Modal
 async function openUpgradeModal() {
   if (!AuthState.user) {
-    showToast('Vui lòng đăng nhập để nâng cấp gói cước.', 'info');
+    if (window.Dialog && typeof window.Dialog.toast === 'function') {
+      window.Dialog.toast('Vui lòng đăng nhập để nâng cấp gói cước.', 'info');
+    }
     openAuthModal('login');
     return;
   }
@@ -170,11 +171,15 @@ async function startCheckout(planId) {
       // Start live polling every 3s
       startOrderPolling(order.orderCode);
     } else {
-      showToast(data.error || 'Không thể tạo đơn hàng.', 'error');
+      if (window.Dialog && typeof window.Dialog.toast === 'function') {
+        window.Dialog.toast(data.error || 'Không thể tạo đơn hàng.', 'error');
+      }
       closeVietQRModal();
     }
   } catch (err) {
-    showToast('Lỗi kết nối: ' + err.message, 'error');
+    if (window.Dialog && typeof window.Dialog.toast === 'function') {
+      window.Dialog.toast('Lỗi kết nối: ' + err.message, 'error');
+    }
     closeVietQRModal();
   }
 }
@@ -210,6 +215,7 @@ function startOrderPolling(orderCode) {
       const res = await fetch(`/api/plans/orders/${orderCode}/status`, {
         headers: getAuthHeaders(),
       });
+      if (!res.ok) return;
       const data = await res.json();
 
       if (data.success && data.isPaid) {
@@ -226,7 +232,9 @@ function startOrderPolling(orderCode) {
 
         // Refresh user profile & quota
         await initAuth();
-        showToast('Thanh toán thành công! Gói cước đã được kích hoạt.', 'success');
+        if (window.Dialog && typeof window.Dialog.toast === 'function') {
+          window.Dialog.toast('Thanh toán thành công! Gói cước đã được kích hoạt.', 'success');
+        }
       }
     } catch (err) {
       console.warn('Lỗi polling đơn hàng:', err);
