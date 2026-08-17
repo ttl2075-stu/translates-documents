@@ -31,6 +31,13 @@ const featureBadgeLinter = document.getElementById('feature-badge-linter');
 const sourcePlanBadge = document.getElementById('source-plan-badge');
 const btnToggleEmailInput = document.getElementById('btn-toggle-email-input');
 const btnCloseEmailInput = document.getElementById('btn-close-email-input');
+const sourceFileCard = document.getElementById('source-file-card');
+const fileCardName = document.getElementById('file-card-name');
+const fileCardSize = document.getElementById('file-card-size');
+const fileCardIcon = document.getElementById('file-card-icon');
+const fileCardIconWrapper = document.getElementById('file-card-icon-wrapper');
+const btnRemoveFileCard = document.getElementById('btn-remove-file-card');
+let uploadedFileState = null;
 let currentActiveJobId = null;
 
 const sourceEditor = document.getElementById('source-editor');
@@ -379,14 +386,18 @@ function setupEventListeners() {
     });
   }
 
+  // Remove uploaded file card to switch back to text input
+  if (btnRemoveFileCard) {
+    btnRemoveFileCard.addEventListener('click', removeUploadedFile);
+  }
+
   // Clear button
   if (btnClearSource) {
     btnClearSource.addEventListener('click', () => {
-      if (sourceEditor) sourceEditor.value = '';
+      removeUploadedFile();
       if (targetEditor) targetEditor.value = '';
       currentTranslatedText = '';
       renderTargetMarkdown('');
-      updateSourceStats();
       updateTargetStats(0, 'Đã xóa');
       generateTableOfContents('');
     });
@@ -596,6 +607,50 @@ function handleFileInput(e) {
   }
 }
 
+function showUploadedFileCard(fileData) {
+  uploadedFileState = fileData;
+  currentSourceFilename = fileData.filename;
+
+  if (fileCardName) fileCardName.textContent = fileData.filename;
+  if (fileCardSize) fileCardSize.textContent = `${(fileData.size / 1024).toFixed(1)} KB`;
+
+  const ext = fileData.filename.includes('.')
+    ? fileData.filename.substring(fileData.filename.lastIndexOf('.')).toLowerCase()
+    : '';
+
+  if (fileCardIcon && fileCardIconWrapper) {
+    if (ext === '.docx') {
+      fileCardIcon.className = 'fa-solid fa-file-word text-blue-600';
+      fileCardIconWrapper.className = 'w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-lg shrink-0 shadow-2xs';
+    } else if (ext === '.json') {
+      fileCardIcon.className = 'fa-solid fa-file-code text-amber-600';
+      fileCardIconWrapper.className = 'w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-lg shrink-0 shadow-2xs';
+    } else {
+      fileCardIcon.className = 'fa-solid fa-file-lines text-indigo-600';
+      fileCardIconWrapper.className = 'w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center text-lg shrink-0 shadow-2xs';
+    }
+  }
+
+  if (sourceEditor) sourceEditor.classList.add('hidden');
+  if (sourceFileCard) sourceFileCard.classList.remove('hidden');
+
+  if (sourceStatsEl) {
+    sourceStatsEl.textContent = `${(fileData.size / 1024).toFixed(1)} KB | Đã nạp file`;
+  }
+}
+
+function removeUploadedFile() {
+  uploadedFileState = null;
+  currentSourceFilename = 'document.md';
+  if (sourceFileCard) sourceFileCard.classList.add('hidden');
+  if (sourceEditor) {
+    sourceEditor.classList.remove('hidden');
+    sourceEditor.value = '';
+    sourceEditor.focus();
+  }
+  updateSourceStats();
+}
+
 async function uploadFile(file) {
   const formData = new FormData();
   formData.append('file', file);
@@ -613,9 +668,7 @@ async function uploadFile(file) {
     }
 
     const data = await res.json();
-    sourceEditor.value = data.content;
-    currentSourceFilename = data.filename;
-    updateSourceStats();
+    showUploadedFileCard(data);
     showToast(`Đã nạp file: ${data.filename} (${(data.size / 1024).toFixed(1)} KB)`);
   } catch (error) {
     showToast(`Không thể tải file: ${error.message}`, true);
@@ -639,7 +692,9 @@ async function refreshCacheStats() {
 // Translation Execution (SSE Streaming)
 // -------------------------------------------------------------
 async function startTranslation() {
-  const content = sourceEditor.value.trim();
+  const content = uploadedFileState ? uploadedFileState.content : (sourceEditor ? sourceEditor.value.trim() : '');
+  const filename = uploadedFileState ? uploadedFileState.filename : currentSourceFilename;
+
   if (!content) {
     showToast('Vui lòng nhập hoặc tải file tài liệu cần dịch!', true);
     return;

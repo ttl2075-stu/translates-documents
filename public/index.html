@@ -202,14 +202,46 @@
         </div>
       </div>
 
-      <!-- Textarea Input & Dropzone -->
+      <!-- Textarea Input, Uploaded File Card & Dropzone -->
       <div id="source-textarea-wrapper" class="relative transition-all">
-        <div id="dropzone" class="hidden absolute inset-0 bg-blue-50/90 backdrop-blur-sm z-20 flex items-center justify-center border-2 border-dashed border-blue-400 rounded-xl">
+        <!-- Dropzone Overlay -->
+        <div id="dropzone" class="hidden absolute inset-0 bg-blue-50/95 backdrop-blur-sm z-20 flex items-center justify-center border-2 border-dashed border-blue-400 rounded-xl">
           <div class="text-center text-blue-600">
             <i class="fa-solid fa-cloud-arrow-up text-3xl mb-1 animate-bounce"></i>
             <p class="font-semibold text-xs">Thả file Word (.docx), Markdown, JSON hoặc TXT vào đây</p>
           </div>
         </div>
+
+        <!-- Uploaded File Placeholder Card (Hiển thị thay cho Textarea khi tải file lên) -->
+        <div id="source-file-card" class="hidden bg-slate-50 border-2 border-dashed border-blue-200/90 hover:border-blue-300 rounded-xl p-3.5 flex items-center justify-between gap-3 transition-all">
+          <div class="flex items-center gap-3 min-w-0">
+            <div id="file-card-icon-wrapper" class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 text-lg shrink-0 shadow-2xs">
+              <i id="file-card-icon" class="fa-solid fa-file-word"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h4 id="file-card-name" class="text-xs font-bold text-slate-800 truncate max-w-xs sm:max-w-md">document.docx</h4>
+                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-1.5 py-0.2 rounded-md shrink-0 flex items-center gap-1">
+                  <i class="fa-solid fa-check text-[9px]"></i> Sẵn sàng dịch
+                </span>
+              </div>
+              <p id="file-card-size" class="text-[11px] text-slate-500 font-mono mt-0.5">0 KB</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <label for="file-upload-input" class="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors shadow-2xs flex items-center gap-1.5">
+              <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+              <span class="hidden sm:inline">Đổi file</span>
+            </label>
+            <button type="button" id="btn-remove-file-card" class="text-xs font-medium text-slate-500 hover:text-rose-600 bg-white hover:bg-rose-50 border border-slate-200 hover:border-rose-200 px-2.5 py-1.5 rounded-lg transition-colors shadow-2xs flex items-center gap-1" title="Hủy file để nhập văn bản">
+              <i class="fa-solid fa-pen-to-square text-[11px]"></i>
+              <span class="hidden sm:inline">Nhập văn bản</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Textarea (chỉ hiện khi người dùng muốn nhập văn bản trực tiếp) -->
         <textarea id="source-editor" rows="2" class="w-full p-2.5 font-mono text-xs leading-relaxed text-slate-800 bg-slate-50/70 border border-slate-200 rounded-xl resize-y outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all max-h-48" placeholder="Dán nội dung Markdown cần dịch vào đây hoặc kéo thả file Word (.docx), Markdown từ máy tính..." spellcheck="false"></textarea>
       </div>
 
@@ -924,9 +956,9 @@
   </div>
 
   <!-- JavaScript Applications -->
-  <script src="js/dialog.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/checkout.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/dialog.js?v=2.2"></script>
+  <script src="js/auth.js?v=2.2"></script>
+  <script src="js/checkout.js?v=2.2"></script>
+  <script src="js/app.js?v=2.2"></script>
 </body>
 </html>
