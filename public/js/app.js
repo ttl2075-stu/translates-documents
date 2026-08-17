@@ -1026,6 +1026,46 @@ function renderTargetMarkdown(content, isFinal = false) {
     return;
   }
 
+  // If Word DOCX document, render dedicated high-end Download Card instead of markdown preview
+  if (currentSourceFilename.toLowerCase().endsWith('.docx')) {
+    const targetLang = selectTargetLang ? selectTargetLang.value : 'vi';
+    const lastDot = currentSourceFilename.lastIndexOf('.');
+    const outName = lastDot !== -1
+      ? `${currentSourceFilename.substring(0, lastDot)}_${targetLang}${currentSourceFilename.substring(lastDot)}`
+      : `${currentSourceFilename}_${targetLang}.docx`;
+
+    targetPreview.innerHTML = `
+      <div class="flex flex-col items-center justify-center p-8 md:p-12 text-center max-w-lg mx-auto space-y-5 animate-fade-in my-auto">
+        <div class="w-20 h-20 rounded-3xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-600 shadow-sm">
+          <i class="fa-solid fa-file-word text-4xl"></i>
+        </div>
+        <div class="space-y-1.5">
+          <h3 class="text-lg font-black text-slate-900 tracking-tight">Dịch Tài Liệu Word (.docx) Thành Công!</h3>
+          <p class="text-xs text-slate-500 max-w-md">Bản dịch đã được tái tạo thành tệp Word nguyên bản, bảo toàn 100% bảng biểu, công thức toán và định dạng gốc.</p>
+        </div>
+        <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 w-full flex items-center justify-between gap-3 text-left">
+          <div class="min-w-0">
+            <h4 class="text-xs font-bold text-slate-800 truncate">${escapeHtml(outName)}</h4>
+            <p class="text-[11px] text-slate-400 font-mono mt-0.5">Microsoft Word Document (.docx)</p>
+          </div>
+          <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 flex items-center gap-1">
+            <i class="fa-solid fa-check text-[9px]"></i> Đã xong
+          </span>
+        </div>
+        <button id="btn-card-download-docx" class="w-full py-3.5 px-6 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-sm rounded-xl shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 transition-all cursor-pointer">
+          <i class="fa-solid fa-download"></i>
+          <span>Tải file Word (.docx) về máy</span>
+        </button>
+      </div>
+    `;
+
+    const btnCardDownload = document.getElementById('btn-card-download-docx');
+    if (btnCardDownload) {
+      btnCardDownload.addEventListener('click', downloadTranslatedFile);
+    }
+    return;
+  }
+
   // If JSON, render formatted code
   if (currentSourceFilename.endsWith('.json')) {
     try {

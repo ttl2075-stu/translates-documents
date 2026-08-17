@@ -25,6 +25,7 @@ export interface TranslationExecutionResult {
   adapterName: string;
   totalChunks: number;
   cachedChunks: number;
+  totalCharacters: number;
   durationMs: number;
   cacheStats?: {
     totalHits: number;
@@ -157,9 +158,11 @@ export class TranslationEngine {
     const sortedChunks = translatedChunks.slice().sort((a, b) => a.id - b.id);
     const rawTranslatedContent = await adapter.unmaskAndSerialize(sortedChunks, parseResult.state);
 
-    // 5. Post-translation Format Review & Standardization Agent
+    const isBinaryDocx = filename.toLowerCase().endsWith('.docx') || adapter.id === 'docx';
+
+    // 5. Post-translation Format Review & Standardization Agent (Skip for binary docx to avoid base64 corruption)
     let translatedContent = rawTranslatedContent;
-    if (options.enableFormatReview !== false) {
+    if (options.enableFormatReview !== false && !isBinaryDocx) {
       onProgress?.({
         currentChunk: totalChunks,
         totalChunks,
@@ -184,12 +187,18 @@ export class TranslationEngine {
     const durationMs = Date.now() - startTime;
     const cacheStats = defaultTranslationCache.getStats();
 
+    // Compute actual text characters processed across all chunks
+    const totalCharacters = parseResult.chunks.reduce(
+      (sum, c) => sum + (c.originalText ? c.originalText.length : c.maskedText.length),
+      0
+    );
+
     onProgress?.({
       currentChunk: totalChunks,
       totalChunks,
       percent: 100,
       status: 'completed',
-      message: `Hoàn tất dịch & rà soát định dạng trong ${(durationMs / 1000).toFixed(1)}s! (${cachedChunks}/${totalChunks} từ cache)`,
+      message: `Hoàn tất dịch & bảo toàn định dạng trong ${(durationMs / 1000).toFixed(1)}s! (${cachedChunks}/${totalChunks} từ cache)`,
     });
 
     return {
@@ -199,6 +208,7 @@ export class TranslationEngine {
       adapterName: adapter.name,
       totalChunks,
       cachedChunks,
+      totalCharacters: totalCharacters > 0 ? totalCharacters : rawContent.length,
       durationMs,
       cacheStats: {
         totalHits: cacheStats.totalHits,

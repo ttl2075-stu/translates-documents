@@ -200,7 +200,7 @@ app.post('/api/translate', optionalAuth, async (req: AuthenticatedRequest, res) 
     });
 
     if (req.user) {
-      defaultSubscriptionService.recordUsage(req.user.id, content.length);
+      defaultSubscriptionService.recordUsage(req.user.id, result.totalCharacters || content.length);
     }
 
     res.json(result);
@@ -347,7 +347,7 @@ app.post('/api/translate-stream', optionalAuth, async (req: AuthenticatedRequest
     });
 
     if (req.user) {
-      defaultSubscriptionService.recordUsage(req.user.id, content.length);
+      defaultSubscriptionService.recordUsage(req.user.id, result.totalCharacters || content.length);
     }
 
     sendEvent('complete', result);

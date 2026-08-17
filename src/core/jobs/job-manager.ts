@@ -255,7 +255,7 @@ export class JobManager {
         };
 
         if (job.userId && job.userId !== 'usr_guest') {
-          await defaultSubscriptionService.recordUsage(job.userId, job.rawContent.length);
+          await defaultSubscriptionService.recordUsage(job.userId, result.totalCharacters || job.rawContent.length);
         }
 
         await this.saveJobToDb(job);

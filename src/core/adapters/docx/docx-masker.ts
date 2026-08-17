@@ -167,7 +167,9 @@ export class DocxMasker {
     let chunkId = 0;
 
     for (const unit of rawParagraphUnits) {
-      const unitLen = unit.maskedText.length;
+      const unitWrapped = `<p id="${unit.pIndex}">${unit.maskedText}</p>`;
+      const unitOriginalWrapped = `<p id="${unit.pIndex}">${unit.originalText}</p>`;
+      const unitLen = unitWrapped.length;
 
       if (currentLength + unitLen > maxChunkSize && currentBatchTexts.length > 0) {
         chunkId++;
@@ -183,8 +185,8 @@ export class DocxMasker {
         currentLength = 0;
       }
 
-      currentBatchTexts.push(unit.maskedText);
-      currentBatchOriginals.push(unit.originalText);
+      currentBatchTexts.push(unitWrapped);
+      currentBatchOriginals.push(unitOriginalWrapped);
       currentBatchMetadata.push({ file: unit.file, pIndex: unit.pIndex });
       currentLength += unitLen + 2;
     }

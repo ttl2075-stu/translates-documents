@@ -18,12 +18,31 @@ export class DocxRebuilder {
 
     for (const chunk of translatedChunks) {
       const units = chunk.metadata?.units || [];
-      const translatedLines = (chunk.translatedText || chunk.maskedText).split(/\n\n+/);
+      const rawText = chunk.translatedText || chunk.maskedText;
 
-      for (let i = 0; i < units.length; i++) {
-        const unit = units[i];
-        const text = i < translatedLines.length ? translatedLines[i] : translatedLines[translatedLines.length - 1] || '';
-        translatedParagraphsMap.set(`${unit.file}#${unit.pIndex}`, text);
+      // Extract all <p id="X">...</p> tags
+      const pTagRegex = /<\s*p\s+id="(\d+)"\s*>([\s\S]*?)<\/\s*p\s*>/gi;
+      let match: RegExpExecArray | null;
+      let matchedCount = 0;
+
+      while ((match = pTagRegex.exec(rawText)) !== null) {
+        const pIndex = parseInt(match[1], 10);
+        const innerText = match[2].trim();
+        const unit = units.find((u: any) => u.pIndex === pIndex);
+        const file = unit ? unit.file : (units[0] ? units[0].file : 'word/document.xml');
+        translatedParagraphsMap.set(`${file}#${pIndex}`, innerText);
+        matchedCount++;
+      }
+
+      // Fallback: If LLM omitted <p id="..."> tags, split by double newlines or single newlines
+      if (matchedCount === 0 && units.length > 0) {
+        const cleanedText = rawText.replace(/<\/?p(?: id="\d+")?>/gi, '').trim();
+        const lines = cleanedText.split(/\n\n+/);
+        for (let i = 0; i < units.length; i++) {
+          const unit = units[i];
+          const lineText = i < lines.length ? lines[i].trim() : lines[lines.length - 1]?.trim() || '';
+          translatedParagraphsMap.set(`${unit.file}#${unit.pIndex}`, lineText);
+        }
       }
     }
 
@@ -36,7 +55,10 @@ export class DocxRebuilder {
         const key = `${fileName}#${i}`;
         if (!translatedParagraphsMap.has(key)) continue;
 
-        const translatedText = translatedParagraphsMap.get(key) || '';
+        let translatedText = translatedParagraphsMap.get(key) || '';
+        // Clean any leftover <p> or </p> tags
+        translatedText = translatedText.replace(/<\/?p(?: id="\d+")?>/gi, '').trim();
+
         const p = paragraphs[i];
 
         // Preserve <w:pPr> (Paragraph styling like alignment, indentation, line spacing)
