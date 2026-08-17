@@ -26,6 +26,11 @@ const inputToggleLabel = document.getElementById('input-toggle-label');
 const btnToggleSource = document.getElementById('btn-toggle-source');
 const sourceTextareaWrapper = document.getElementById('source-textarea-wrapper');
 const sourceToggleIcon = document.getElementById('source-toggle-icon');
+const featureBadgeBg = document.getElementById('feature-badge-bg');
+const featureBadgeLinter = document.getElementById('feature-badge-linter');
+const sourcePlanBadge = document.getElementById('source-plan-badge');
+const btnToggleEmailInput = document.getElementById('btn-toggle-email-input');
+const btnCloseEmailInput = document.getElementById('btn-close-email-input');
 let currentActiveJobId = null;
 
 const sourceEditor = document.getElementById('source-editor');
@@ -133,11 +138,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function updateFeatureSwitchesFromSubscription() {
-  if (chkEnableFormatReview && typeof AuthState !== 'undefined' && AuthState.subscription) {
-    chkEnableFormatReview.checked = Boolean(AuthState.subscription.allowAiFormatReview);
+  const sub = typeof AuthState !== 'undefined' ? AuthState.subscription : null;
+
+  if (sourcePlanBadge) {
+    sourcePlanBadge.textContent = sub?.badge || sub?.planName || 'Miễn phí';
   }
-  if (chkRunBackground && typeof AuthState !== 'undefined' && AuthState.subscription) {
-    chkRunBackground.checked = Boolean(AuthState.subscription.allowBackgroundJobs);
+
+  if (featureBadgeBg) {
+    const hasBg = Boolean(sub?.allowBackgroundJobs);
+    featureBadgeBg.className = hasBg
+      ? 'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 transition-all shadow-2xs'
+      : 'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200/60 transition-all opacity-60';
+    featureBadgeBg.title = hasBg
+      ? '✅ Đã tự động kích hoạt chế độ chạy nền trên máy chủ (Gói Pro/Enterprise)'
+      : 'Nâng cấp lên Pro/Enterprise để tự động kích hoạt tính năng chạy nền';
+  }
+
+  if (featureBadgeLinter) {
+    const hasLinter = Boolean(sub?.allowAiFormatReview !== false);
+    featureBadgeLinter.className = hasLinter
+      ? 'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 transition-all shadow-2xs'
+      : 'inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200/60 transition-all opacity-60';
+    featureBadgeLinter.title = hasLinter
+      ? '✅ Đã tự động kích hoạt AI rà soát & chuẩn hóa định dạng tài liệu'
+      : 'Nâng cấp gói để tự động kích hoạt AI rà soát định dạng';
   }
 }
 
@@ -333,6 +357,25 @@ function setupEventListeners() {
       if (sourceToggleIcon) {
         sourceToggleIcon.className = isHidden ? 'fa-solid fa-chevron-down text-[10px]' : 'fa-solid fa-chevron-up text-[10px]';
       }
+    });
+  }
+
+  // Toggle Email Recipient input bar
+  if (btnToggleEmailInput && emailRecipientWrapper) {
+    btnToggleEmailInput.addEventListener('click', () => {
+      const isHidden = emailRecipientWrapper.classList.toggle('hidden');
+      if (!isHidden && inputRecipientEmail) {
+        if (!inputRecipientEmail.value && typeof AuthState !== 'undefined' && AuthState.user?.email) {
+          inputRecipientEmail.value = AuthState.user.email;
+        }
+        inputRecipientEmail.focus();
+      }
+    });
+  }
+
+  if (btnCloseEmailInput && emailRecipientWrapper) {
+    btnCloseEmailInput.addEventListener('click', () => {
+      emailRecipientWrapper.classList.add('hidden');
     });
   }
 
@@ -604,19 +647,19 @@ async function startTranslation() {
 
   if (isTranslating) return;
 
-  const recipientEmail = chkEnableEmail && chkEnableEmail.checked ? inputRecipientEmail.value.trim() : undefined;
-  if (chkEnableEmail && chkEnableEmail.checked && (!recipientEmail || !recipientEmail.includes('@'))) {
-    showToast('Vui lòng nhập địa chỉ email hợp lệ để nhận file!', true);
-    inputRecipientEmail.focus();
-    return;
+  const sub = typeof AuthState !== 'undefined' ? AuthState.subscription : null;
+  const isBackground = Boolean(sub?.allowBackgroundJobs);
+  const enableFormatReview = Boolean(sub?.allowAiFormatReview !== false);
+
+  let recipientEmail = undefined;
+  if (inputRecipientEmail && inputRecipientEmail.value.trim().includes('@')) {
+    recipientEmail = inputRecipientEmail.value.trim();
+  } else if (isBackground && typeof AuthState !== 'undefined' && AuthState.user?.email) {
+    recipientEmail = AuthState.user.email;
   }
 
-  const glossary = parseGlossary(inputGlossary.value);
-  const customInstructions = inputCustomInstruction.value.trim();
-
-  // Auto-activate background job if user plan allows background jobs or user checked the box
-  const hasPlanBackground = Boolean(typeof AuthState !== 'undefined' && AuthState.subscription?.allowBackgroundJobs);
-  const isBackground = hasPlanBackground || (chkRunBackground && chkRunBackground.checked);
+  const glossary = parseGlossary(inputGlossary ? inputGlossary.value : '');
+  const customInstructions = inputCustomInstruction ? inputCustomInstruction.value.trim() : '';
 
   const payload = {
     content,
@@ -627,7 +670,7 @@ async function startTranslation() {
       targetLang: selectTargetLang.value,
       style: selectStyle.value,
       enableCache: true,
-      enableFormatReview: chkEnableFormatReview ? chkEnableFormatReview.checked : true,
+      enableFormatReview,
       customGlossary: Object.keys(glossary).length > 0 ? glossary : undefined,
       customInstructions: customInstructions.length > 0 ? customInstructions : undefined,
     },

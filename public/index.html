@@ -177,8 +177,9 @@
   <!-- Main Content Container -->
   <div class="flex-1 max-w-7xl w-full mx-auto p-3 lg:p-5 flex flex-col gap-3">
 
-    <!-- Collapsible Compact Source Input Section (Khung nhập nguồn gọn gàng) -->
-    <div id="source-input-section" class="no-print bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex flex-col gap-2.5 transition-all">
+    <!-- Collapsible Compact Source Input Section (Khung nhập nguồn tinh giản & hiện đại) -->
+    <div id="source-input-section" class="no-print bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs flex flex-col gap-2.5 transition-all">
+      <!-- Source Header -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
@@ -186,35 +187,36 @@
           </span>
           <span id="source-stats" class="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-mono">0 ký tự | 0 từ</span>
         </div>
-        <div class="flex items-center gap-2">
-          <label for="file-upload-input" class="text-xs text-slate-600 hover:text-blue-600 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 border border-slate-200/80 cursor-pointer transition-colors flex items-center gap-1 shadow-2xs">
-            <i class="fa-solid fa-arrow-up-from-bracket text-slate-400 text-[11px]"></i> Tải file
+        <div class="flex items-center gap-1.5">
+          <label for="file-upload-input" class="text-xs text-slate-700 hover:text-blue-600 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 border border-slate-200 cursor-pointer transition-colors flex items-center gap-1.5 shadow-2xs">
+            <i class="fa-solid fa-arrow-up-from-bracket text-blue-600 text-[11px]"></i>
+            <span>Tải file</span>
           </label>
           <input type="file" id="file-upload-input" accept=".md,.markdown,.docx,.json,.txt" class="hidden">
-          <button id="btn-clear-source" class="text-xs text-slate-500 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors" title="Xóa toàn bộ nội dung">
+          <button id="btn-clear-source" class="text-xs text-slate-500 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors" title="Xóa nội dung nguồn">
             <i class="fa-regular fa-trash-can mr-1"></i> Xóa
           </button>
-          <button type="button" id="btn-toggle-source" class="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors" title="Thu gọn / Mở rộng khung nhập">
+          <button type="button" id="btn-toggle-source" class="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100 transition-colors" title="Thu gọn / Mở rộng khung nhập">
             <i class="fa-solid fa-chevron-up text-[10px]" id="source-toggle-icon"></i>
           </button>
         </div>
       </div>
 
-      <!-- Textarea Input & Dropzone (Thu gọn mượt mà) -->
+      <!-- Textarea Input & Dropzone -->
       <div id="source-textarea-wrapper" class="relative transition-all">
         <div id="dropzone" class="hidden absolute inset-0 bg-blue-50/90 backdrop-blur-sm z-20 flex items-center justify-center border-2 border-dashed border-blue-400 rounded-xl">
           <div class="text-center text-blue-600">
             <i class="fa-solid fa-cloud-arrow-up text-3xl mb-1 animate-bounce"></i>
-            <p class="font-semibold text-xs">Thả file Markdown, Word (.docx), JSON hoặc TXT vào đây</p>
+            <p class="font-semibold text-xs">Thả file Word (.docx), Markdown, JSON hoặc TXT vào đây</p>
           </div>
         </div>
-        <textarea id="source-editor" rows="2" class="w-full p-2.5 font-mono text-xs leading-relaxed text-slate-800 bg-slate-50 border border-slate-200 rounded-xl resize-y outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all max-h-48" placeholder="Dán nội dung Markdown cần dịch vào đây hoặc kéo thả file Word (.docx), Markdown từ máy tính..." spellcheck="false"></textarea>
+        <textarea id="source-editor" rows="2" class="w-full p-2.5 font-mono text-xs leading-relaxed text-slate-800 bg-slate-50/70 border border-slate-200 rounded-xl resize-y outline-none focus:bg-white focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all max-h-48" placeholder="Dán nội dung Markdown cần dịch vào đây hoặc kéo thả file Word (.docx), Markdown từ máy tính..." spellcheck="false"></textarea>
       </div>
 
       <!-- Controls row: Languages, Style, and Start Button -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-center">
         <div>
-          <select id="select-source-lang" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-2.5 py-1.5 focus:bg-white focus:border-blue-500 outline-none">
+          <select id="select-source-lang" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-2.5 py-2 focus:bg-white focus:border-blue-500 outline-none">
             <option value="auto" selected>🌐 Tự nhận diện nguồn</option>
             <option value="en">Tiếng Anh (English)</option>
             <option value="vi">Tiếng Việt (Vietnamese)</option>
@@ -229,7 +231,7 @@
         </div>
 
         <div>
-          <select id="select-target-lang" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-2.5 py-1.5 focus:bg-white focus:border-blue-500 outline-none font-semibold">
+          <select id="select-target-lang" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-2.5 py-2 focus:bg-white focus:border-blue-500 outline-none font-semibold">
             <option value="vi" selected>🇻🇳 Sang Tiếng Việt</option>
             <option value="en">🇬🇧 Sang Tiếng Anh</option>
             <option value="zh">🇨🇳 Sang Tiếng Trung</option>
@@ -243,9 +245,9 @@
         </div>
 
         <div>
-          <select id="select-style" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-2.5 py-1.5 focus:bg-white focus:border-blue-500 outline-none font-medium">
-            <option value="research" selected>🎓 Nghiên cứu / Bài báo khoa học</option>
-            <option value="technical">⚙️ Chuẩn Kỹ thuật & CNTT</option>
+          <select id="select-style" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl px-2.5 py-2 focus:bg-white focus:border-blue-500 outline-none font-medium">
+            <option value="research" selected>🎓 Nghiên cứu / Khoa học</option>
+            <option value="technical">⚙️ Chuẩn Kỹ thuật & IT</option>
             <option value="natural">🌿 Tự nhiên & Mượt mà</option>
             <option value="formal">👔 Trang trọng & Báo cáo</option>
             <option value="concise">⚡ Tóm lược & Ngắn gọn</option>
@@ -254,7 +256,7 @@
         </div>
 
         <div>
-          <button id="btn-start-translate" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl px-3 py-2 flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/20 transition-all cursor-pointer">
+          <button id="btn-start-translate" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl px-3 py-2 flex items-center justify-center gap-1.5 shadow-sm shadow-blue-500/25 transition-all cursor-pointer">
             <i id="translate-icon" class="fa-solid fa-play text-[10px]"></i>
             <span id="translate-btn-text">Bắt đầu dịch AI</span>
             <span class="text-[9px] bg-white/20 px-1 py-0.2 rounded font-mono font-normal">Ctrl+↵</span>
@@ -262,44 +264,51 @@
         </div>
       </div>
 
-      <!-- Execution Mode: Background Execution & Email Delivery Bar -->
-      <div class="flex flex-wrap items-center justify-between gap-2.5 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs">
-        <div class="flex items-center gap-3.5 flex-wrap">
-          <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700 select-none" title="Chạy nền trên máy chủ, an toàn tuyệt đối ngay cả khi tắt máy">
-            <input type="checkbox" id="chk-run-background" class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500">
-            <span class="flex items-center gap-1">
-              <i class="fa-solid fa-server text-blue-600 text-[11px]"></i>
-              <span>Chạy nền</span>
-            </span>
-          </label>
+      <!-- Feature Status Bar: Tự động kích hoạt theo gói cước người dùng -->
+      <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50/80 border border-slate-200/70 rounded-xl px-3 py-1.5 text-xs">
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Background Execution Status Badge -->
+          <span id="feature-badge-bg" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200/60 transition-all" title="Gói Pro & Enterprise tự động kích hoạt chế độ chạy nền không lo mất kết nối">
+            <i class="fa-solid fa-server text-[10px]"></i>
+            <span id="feature-lbl-bg">Chạy nền</span>
+          </span>
 
-          <label class="inline-flex items-center gap-1.5 cursor-pointer font-semibold text-slate-700 select-none" title="Tự động chạy AI rà soát và chuẩn hóa cấu trúc định dạng bảng, công thức toán, code blocks">
-            <input type="checkbox" id="chk-enable-format-review" class="w-3.5 h-3.5 text-purple-600 rounded border-slate-300 focus:ring-purple-500" checked>
-            <span class="flex items-center gap-1">
-              <i class="fa-solid fa-wand-magic-sparkles text-purple-600 text-[11px]"></i>
-              <span>AI rà soát định dạng</span>
-            </span>
-          </label>
+          <!-- AI Format Review Status Badge -->
+          <span id="feature-badge-linter" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-400 border border-slate-200/60 transition-all" title="AI tự động rà soát & chuẩn hóa định dạng bảng, công thức toán KaTeX và khối code">
+            <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i>
+            <span id="feature-lbl-linter">AI Rà soát định dạng</span>
+          </span>
 
-          <label class="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700 select-none">
-            <input type="checkbox" id="chk-enable-email" class="w-3.5 h-3.5 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500">
-            <span class="flex items-center gap-1">
-              <i class="fa-regular fa-paper-plane text-emerald-600 text-[11px]"></i>
-              <span>Gửi email khi xong</span>
-            </span>
-          </label>
+          <!-- Email Delivery Toggle / Config -->
+          <div class="inline-flex items-center gap-1">
+            <button type="button" id="btn-toggle-email-input" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition-all cursor-pointer" title="Cấu hình nhận file qua email khi hoàn thành">
+              <i class="fa-regular fa-paper-plane text-[10px]"></i>
+              <span id="lbl-feature-email">Gửi email khi xong</span>
+            </button>
+          </div>
         </div>
 
-        <div id="email-recipient-wrapper" class="hidden flex-1 sm:max-w-xs flex items-center gap-1.5">
-          <input type="email" id="input-recipient-email" class="w-full bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Nhập email nhận file...">
+        <!-- Current User Plan Indicator -->
+        <div class="flex items-center gap-1.5 text-[11px] text-slate-500">
+          <span>Gói cước:</span>
+          <span id="source-plan-badge" class="font-bold text-blue-600 bg-blue-50 px-2 py-0.2 rounded-full border border-blue-200">Miễn phí</span>
         </div>
       </div>
 
+      <!-- Expandable Email Recipient Input (Khi người dùng click hoặc bật gửi mail) -->
+      <div id="email-recipient-wrapper" class="hidden flex items-center gap-2 bg-emerald-50/60 border border-emerald-200/80 rounded-xl px-3 py-2 text-xs">
+        <i class="fa-solid fa-envelope text-emerald-600 text-sm"></i>
+        <input type="email" id="input-recipient-email" class="flex-1 bg-white border border-slate-300 text-slate-800 text-xs rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Nhập địa chỉ email để nhận kết quả dịch...">
+        <button type="button" id="btn-close-email-input" class="text-xs text-slate-400 hover:text-slate-600 px-1.5 py-0.5 rounded">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
       <!-- Compact Advanced Details -->
-      <details class="group border-t border-slate-100 pt-2">
+      <details class="group border-t border-slate-100 pt-1.5">
         <summary class="flex items-center justify-between text-xs font-medium text-slate-500 hover:text-blue-600 cursor-pointer select-none">
           <span class="flex items-center gap-1.5">
-            <i class="fa-solid fa-sliders text-slate-400 group-open:rotate-90 transition-transform"></i>
+            <i class="fa-solid fa-sliders text-slate-400 group-open:rotate-90 transition-transform text-[11px]"></i>
             <span>Tùy chọn nâng cao (Từ điển chuyên ngành, Hướng dẫn bổ sung)</span>
           </span>
           <span id="cache-badge" class="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.2 rounded-full font-mono font-medium">
@@ -347,42 +356,40 @@
     </div>
 
     <!-- Main Output / Document Preview Area (Tối đa 100% không gian) -->
-    <main id="target-panel" class="flex-1 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden shadow-xs relative transition-all">
+    <main id="target-panel" class="flex-1 bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden shadow-xs relative transition-all">
       
-      <!-- Output Panel Header Toolbar (Ẩn khi in) -->
-      <div class="no-print bg-slate-50/90 border-b border-slate-200 px-3.5 py-2 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-2">
-          <span class="px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider bg-blue-100 text-blue-700 rounded flex items-center gap-1">
-            <i class="fa-solid fa-file-lines text-[10px]"></i> Bản xem trước Markdown
-          </span>
-          <div class="inline-flex bg-slate-200/60 p-0.5 rounded-lg text-xs">
-            <button id="tab-rendered" class="px-2.5 py-0.5 rounded-md font-medium text-slate-800 bg-white shadow-xs transition-all text-xs">Xem trước</button>
-            <button id="tab-raw" class="px-2.5 py-0.5 rounded-md font-medium text-slate-500 hover:text-slate-800 transition-all text-xs flex items-center gap-1">
+      <!-- Output Panel Header Toolbar (Gọn gàng, loại bỏ tag rườm rà, dùng icon tối ưu) -->
+      <div class="no-print bg-slate-50/90 border-b border-slate-200 px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <!-- View Modes: Xem trước / Chỉnh sửa / Diff -->
+          <div class="inline-flex bg-slate-200/70 p-0.5 rounded-lg text-xs">
+            <button id="tab-rendered" class="px-2.5 py-1 rounded-md font-medium text-slate-800 bg-white shadow-xs transition-all text-xs">Xem trước</button>
+            <button id="tab-raw" class="px-2.5 py-1 rounded-md font-medium text-slate-500 hover:text-slate-800 transition-all text-xs flex items-center gap-1">
               <i class="fa-solid fa-pen text-[10px] text-slate-400"></i>
               <span>Chỉnh sửa</span>
             </button>
-            <button id="tab-diff" class="px-2.5 py-0.5 rounded-md font-medium text-slate-500 hover:text-slate-800 transition-all text-xs">Diff</button>
+            <button id="tab-diff" class="px-2.5 py-1 rounded-md font-medium text-slate-500 hover:text-slate-800 transition-all text-xs">Diff</button>
           </div>
+
           <!-- AI Selection Refine Button -->
-          <button id="btn-open-refine-modal" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-md transition-all shadow-xs" title="Bôi chọn nội dung cần sửa trong tab Chỉnh sửa rồi bấm nút này (Ctrl+K)">
-            <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
-            <span>Sửa bằng AI</span>
+          <button id="btn-open-refine-modal" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-lg transition-all shadow-2xs" title="Bôi chọn đoạn văn bản cần sửa rồi bấm nút này (Ctrl+K)">
+            <i class="fa-solid fa-wand-magic-sparkles text-indigo-600 text-[11px]"></i>
+            <span class="hidden sm:inline">Sửa bằng AI</span>
           </button>
 
           <!-- Standalone Format Review / Linter Button -->
-          <button id="btn-review-format" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-md transition-all shadow-xs" title="Chạy Agent rà soát và tự động chuẩn hóa cấu trúc bảng, công thức toán, khối code">
-            <i class="fa-solid fa-spell-check text-purple-600"></i>
-            <span id="lbl-review-format">Rà soát định dạng</span>
+          <button id="btn-review-format" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/80 rounded-lg transition-all shadow-2xs" title="Chạy AI rà soát và tự động chuẩn hóa cấu trúc bảng, công thức toán, khối code">
+            <i class="fa-solid fa-spell-check text-purple-600 text-[11px]"></i>
+            <span id="lbl-review-format" class="hidden sm:inline">Rà soát định dạng</span>
           </button>
         </div>
         
-        <!-- Output Action Tools -->
-        <div class="flex items-center flex-wrap gap-1.5">
+        <!-- Output Action Tools (Tối ưu hóa thành các Icon Action Tools có Tooltip) -->
+        <div class="flex items-center gap-1">
           <!-- Format Settings Dropdown/Popover Button -->
           <div class="relative">
-            <button id="btn-toggle-format-menu" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-blue-600 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors" title="Cài đặt định dạng xem trước (Cỡ chữ, dãn dòng, khoảng cách)">
-              <i class="fa-solid fa-text-height text-slate-500"></i>
-              <span>Định dạng</span>
+            <button id="btn-toggle-format-menu" class="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-colors" title="Định dạng hiển thị (Cỡ chữ, dãn dòng, font)">
+              <i class="fa-solid fa-sliders text-slate-500 text-xs"></i>
             </button>
             
             <!-- Format Menu Popover -->
@@ -431,33 +438,29 @@
           </div>
 
           <!-- Table of Contents (TOC) Toggle Button -->
-          <button id="btn-toggle-toc" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-blue-600 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors" title="Mở mục lục tài liệu (TOC)">
-            <i class="fa-solid fa-list-ul text-slate-500"></i>
-            <span>Mục lục</span>
+          <button id="btn-toggle-toc" class="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-colors" title="Mục lục tài liệu (TOC)">
+            <i class="fa-solid fa-list-ul text-slate-500 text-xs"></i>
           </button>
 
           <!-- Print / PDF Button -->
-          <button id="btn-print-preview" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-blue-600 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors" title="In tài liệu hoặc Xuất ra file PDF">
-            <i class="fa-solid fa-print text-slate-500"></i>
-            <span>In / PDF</span>
+          <button id="btn-print-preview" class="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-colors" title="In tài liệu / Xuất PDF">
+            <i class="fa-solid fa-print text-slate-500 text-xs"></i>
           </button>
 
           <!-- Fullscreen Toggle Button -->
-          <button id="btn-fullscreen-target" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-blue-600 bg-white hover:bg-slate-50 border border-slate-200 rounded-md transition-colors" title="Mở chế độ xem toàn màn hình (Full width)">
-            <i id="fullscreen-icon" class="fa-solid fa-expand text-slate-500"></i>
-            <span>Toàn màn hình</span>
+          <button id="btn-fullscreen-target" class="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-blue-600 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-colors" title="Toàn màn hình (Esc để thoát)">
+            <i id="fullscreen-icon" class="fa-solid fa-expand text-slate-500 text-xs"></i>
           </button>
 
           <!-- Copy Button -->
-          <button id="btn-copy-target" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-md transition-colors" title="Sao chép nội dung">
-            <i class="fa-regular fa-copy text-slate-500"></i>
-            <span>Sao chép</span>
+          <button id="btn-copy-target" class="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-white border border-transparent hover:border-slate-200 rounded-lg transition-colors" title="Sao chép toàn bộ bản dịch">
+            <i class="fa-regular fa-copy text-slate-500 text-xs"></i>
           </button>
 
-          <!-- Download Button -->
-          <button id="btn-download-target" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-xs transition-colors" title="Tải file Markdown về máy">
+          <!-- Download Button (Icon nổi bật) -->
+          <button id="btn-download-target" class="h-8 px-2.5 flex items-center gap-1.5 text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-sm shadow-blue-500/20 text-xs font-semibold transition-all cursor-pointer" title="Tải file kết quả về máy">
             <i class="fa-solid fa-download text-xs"></i>
-            <span>Tải về</span>
+            <span class="hidden sm:inline">Tải về</span>
           </button>
         </div>
       </div>
